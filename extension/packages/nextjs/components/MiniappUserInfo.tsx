@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useMiniapp, resolveClientFid } from "~~/components/MiniappProvider";
 import { sdk } from "@farcaster/miniapp-sdk";
+import { resolveClientFid, useMiniapp } from "~~/components/MiniappProvider";
 
 export const MiniappUserInfo = () => {
   const { context, isReady, isMiniApp, openProfile } = useMiniapp();
@@ -70,7 +70,9 @@ export const MiniappUserInfo = () => {
               <td>Username</td>
               <td className="font-mono">
                 {user?.fid ? (
-                  <span className="cursor-pointer" onClick={() => openProfile({ fid: user?.fid })}>{formatValue(user?.username)}</span>
+                  <span className="cursor-pointer" onClick={() => openProfile({ fid: user?.fid })}>
+                    {formatValue(user?.username)}
+                  </span>
                 ) : (
                   <span>-</span>
                 )}
@@ -82,13 +84,7 @@ export const MiniappUserInfo = () => {
             </tr>
             <tr>
               <td>Profile Image</td>
-              <td>
-                {user?.pfpUrl ? (
-                  <img src={user.pfpUrl} alt="Profile" className="w-12 h-12 rounded-full" />
-                ) : (
-                  "-"
-                )}
-              </td>
+              <td>{user?.pfpUrl ? <img src={user.pfpUrl} alt="Profile" className="w-12 h-12 rounded-full" /> : "-"}</td>
             </tr>
             <tr>
               <td>Location</td>
@@ -125,9 +121,7 @@ export const MiniappUserInfo = () => {
               <td>
                 <div className="flex flex-col">
                   <span className="font-mono">{formatValue(context.client?.clientFid)}</span>
-                  {context.client?.clientFid && (
-                    <span className="text-xs opacity-70">{clientName}</span>
-                  )}
+                  {context.client?.clientFid && <span className="text-xs opacity-70">{clientName}</span>}
                 </div>
               </td>
             </tr>
@@ -137,19 +131,19 @@ export const MiniappUserInfo = () => {
             </tr>
             <tr>
               <td>Safe Area - Top</td>
-              <td className="font-mono">{formatValue(context.client?.safeAreaInsets?.top, 'px')}</td>
+              <td className="font-mono">{formatValue(context.client?.safeAreaInsets?.top, "px")}</td>
             </tr>
             <tr>
               <td>Safe Area - Bottom</td>
-              <td className="font-mono">{formatValue(context.client?.safeAreaInsets?.bottom, 'px')}</td>
+              <td className="font-mono">{formatValue(context.client?.safeAreaInsets?.bottom, "px")}</td>
             </tr>
             <tr>
               <td>Safe Area - Left</td>
-              <td className="font-mono">{formatValue(context.client?.safeAreaInsets?.left, 'px')}</td>
+              <td className="font-mono">{formatValue(context.client?.safeAreaInsets?.left, "px")}</td>
             </tr>
             <tr>
               <td>Safe Area - Right</td>
-              <td className="font-mono">{formatValue(context.client?.safeAreaInsets?.right, 'px')}</td>
+              <td className="font-mono">{formatValue(context.client?.safeAreaInsets?.right, "px")}</td>
             </tr>
             <tr>
               <td>Notifications Enabled</td>
@@ -188,90 +182,95 @@ export const MiniappUserInfo = () => {
           </tbody>
         </table>
         <div className="text-sm mt-4">
-          More Info of MiniApp Context: <Link 
-            href="https://miniapps.farcaster.xyz/docs/sdk/context" 
-            target="_blank" 
-            rel="noopener noreferrer" 
-            className="text-blue-500 underline">https://miniapps.farcaster.xyz/docs/sdk/context
+          More Info of MiniApp Context:{" "}
+          <Link
+            href="https://miniapps.farcaster.xyz/docs/sdk/context"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-500 underline"
+          >
+            https://miniapps.farcaster.xyz/docs/sdk/context
           </Link>
         </div>
-         <div className="mt-6">
-           <h2 className="text-xl font-bold text-center mt-4">Haptics Demo</h2>
-           {!context.features?.haptics && 
-            <p className="text-red-500 text-center my-0">Haptics not available</p>
-           }
-           <p className="font-semibold mb-2">Impact:</p>
-           <div className="flex flex-wrap gap-2">
-             <button 
-               className="btn btn-sm btn-primary" 
-               disabled={!context.features?.haptics}
-               onClick={() => sdk.haptics.impactOccurred('light')}
-             >
-               Light
-             </button>
-             <button 
-               className="btn btn-sm btn-primary" 
-               disabled={!context.features?.haptics}
-               onClick={() => sdk.haptics.impactOccurred('medium')}
-             >
-               Medium
-             </button>
-             <button 
-               className="btn btn-sm btn-primary" 
-               disabled={!context.features?.haptics}
-               onClick={() => sdk.haptics.impactOccurred('heavy')}
-             >
-               Heavy
-             </button>
-             <button 
-               className="btn btn-sm btn-primary" 
-               disabled={!context.features?.haptics}
-               onClick={() => sdk.haptics.impactOccurred('soft')}
-             >
-               Soft
-             </button>
-             <button 
-               className="btn btn-sm btn-primary"
-               disabled={!context.features?.haptics}
-               onClick={() => sdk.haptics.impactOccurred('rigid')}
-             >
-               Rigid
-             </button>
-            </div>
-            <p className="font-semibold mb-2">Notification:</p>
-            <div className="flex flex-wrap gap-2">             
-              <button 
-                className="btn btn-sm btn-primary"
-                disabled={!context.features?.haptics}
-                onClick={() => sdk.haptics.notificationOccurred('success')}
-              >
-                Success
-              </button>
-              <button 
-                className="btn btn-sm btn-primary"
-                disabled={!context.features?.haptics}
-                onClick={() => sdk.haptics.notificationOccurred('error')}
-              >
-                Error
-              </button>
-              <button 
-                className="btn btn-sm btn-primary"
-                disabled={!context.features?.haptics}
-                onClick={() => sdk.haptics.notificationOccurred('warning')}
-              > Warning
-              </button>
-            </div>  
-            <p className="font-semibold mb-2">Selection:</p>
-            <div className="flex flex-wrap gap-2">
-              <button 
-                className="btn btn-sm btn-primary"
-                disabled={!context.features?.haptics}
-                onClick={() => sdk.haptics.selectionChanged()}
-              > Selection Changed
-              </button>
-            </div>
-           </div>
-         <hr className="mt-8 mb-4" />
+        <div className="mt-6">
+          <h2 className="text-xl font-bold text-center mt-4">Haptics Demo</h2>
+          {!context.features?.haptics && <p className="text-red-500 text-center my-0">Haptics not available</p>}
+          <p className="font-semibold mb-2">Impact:</p>
+          <div className="flex flex-wrap gap-2">
+            <button
+              className="btn btn-sm btn-primary"
+              disabled={!context.features?.haptics}
+              onClick={() => sdk.haptics.impactOccurred("light")}
+            >
+              Light
+            </button>
+            <button
+              className="btn btn-sm btn-primary"
+              disabled={!context.features?.haptics}
+              onClick={() => sdk.haptics.impactOccurred("medium")}
+            >
+              Medium
+            </button>
+            <button
+              className="btn btn-sm btn-primary"
+              disabled={!context.features?.haptics}
+              onClick={() => sdk.haptics.impactOccurred("heavy")}
+            >
+              Heavy
+            </button>
+            <button
+              className="btn btn-sm btn-primary"
+              disabled={!context.features?.haptics}
+              onClick={() => sdk.haptics.impactOccurred("soft")}
+            >
+              Soft
+            </button>
+            <button
+              className="btn btn-sm btn-primary"
+              disabled={!context.features?.haptics}
+              onClick={() => sdk.haptics.impactOccurred("rigid")}
+            >
+              Rigid
+            </button>
+          </div>
+          <p className="font-semibold mb-2">Notification:</p>
+          <div className="flex flex-wrap gap-2">
+            <button
+              className="btn btn-sm btn-primary"
+              disabled={!context.features?.haptics}
+              onClick={() => sdk.haptics.notificationOccurred("success")}
+            >
+              Success
+            </button>
+            <button
+              className="btn btn-sm btn-primary"
+              disabled={!context.features?.haptics}
+              onClick={() => sdk.haptics.notificationOccurred("error")}
+            >
+              Error
+            </button>
+            <button
+              className="btn btn-sm btn-primary"
+              disabled={!context.features?.haptics}
+              onClick={() => sdk.haptics.notificationOccurred("warning")}
+            >
+              {" "}
+              Warning
+            </button>
+          </div>
+          <p className="font-semibold mb-2">Selection:</p>
+          <div className="flex flex-wrap gap-2">
+            <button
+              className="btn btn-sm btn-primary"
+              disabled={!context.features?.haptics}
+              onClick={() => sdk.haptics.selectionChanged()}
+            >
+              {" "}
+              Selection Changed
+            </button>
+          </div>
+        </div>
+        <hr className="mt-8 mb-4" />
       </div>
     </div>
   );

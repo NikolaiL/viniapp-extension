@@ -17,10 +17,10 @@ NEXT_PUBLIC_APP_DESCRIPTION="Built with 🏗 Scaffold-ETH 2 and MiniApp Extensio
 NEXT_PUBLIC_APP_SPLASH_IMAGE=\${NEXT_PUBLIC_URL}/favicon.png
 NEXT_PUBLIC_SPLASH_BACKGROUND_COLOR="#212638"
 NEXT_PUBLIC_APP_PRIMARY_CATEGORY=developer-tools
-NEXT_PUBLIC_APP_HERO_IMAGE=\${NEXT_PUBLIC_URL}/thumbnail.jpg
+NEXT_PUBLIC_APP_HERO_IMAGE=\${NEXT_PUBLIC_URL}/thumbnail_miniapp.jpg
 NEXT_PUBLIC_APP_TAGLINE="Built with Scaffold ETH 2"
 NEXT_PUBLIC_APP_OG_TITLE="Scaffold-ETH 2 MiniApp"
 NEXT_PUBLIC_APP_OG_DESCRIPTION="Built with 🏗 Scaffold-ETH 2 and MiniApp Extension"
-NEXT_PUBLIC_APP_OG_IMAGE=\${NEXT_PUBLIC_URL}/thumbnail.jpg
+NEXT_PUBLIC_APP_OG_IMAGE=\${NEXT_PUBLIC_URL}/thumbnail_miniapp.jpg
 NEXT_PUBLIC_APP_TAGS="Scaffold-ETH, MiniApp, Farcaster, Base, Ponder"
 `;

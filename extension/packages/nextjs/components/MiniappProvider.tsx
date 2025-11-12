@@ -96,7 +96,7 @@ export const resolveClientFid = (fid: number | undefined): string => {
 
 /**
  * MiniappContext provides full SDK context and initialization state
- * 
+ *
  * Usage:
  * - Access all context: const { context, isReady, isMiniApp } = useMiniapp()
  * - Access user: context.user
@@ -121,7 +121,7 @@ const MiniappContext = createContext<MiniappContextType | undefined>(undefined);
 /**
  * Hook to access Farcaster miniapp context
  * Provides full SDK context, user data, and initialization state
- * 
+ *
  * @returns {{ context: FullMiniAppContext, isReady: boolean, isMiniApp: boolean }}
  * @throws Error if used outside of MiniappProvider
  */
@@ -224,11 +224,11 @@ export const MiniappProvider = ({ children }: MiniappProviderProps) => {
       try {
         // Call ready() to dismiss splash screen
         await sdk.actions.ready();
-        
+
         // Fetch full context and environment
         const sdkContext = await sdk.context;
         const inMiniApp = await sdk.isInMiniApp();
-        
+
         // Store full context
         const fullContext: FullMiniAppContext = {
           user: sdkContext?.user ?? null,
@@ -236,12 +236,12 @@ export const MiniappProvider = ({ children }: MiniappProviderProps) => {
           client: sdkContext?.client,
           features: sdkContext?.features,
         };
-        
+
         // Log initialization results
         console.log("MiniApp SDK ready");
         console.log("Full context:", fullContext);
         console.log("Is MiniApp:", inMiniApp);
-        
+
         // Update state
         setContext(fullContext);
         setIsMiniApp(inMiniApp);
