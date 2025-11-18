@@ -41,6 +41,7 @@ export const MiniappUserInfo = () => {
   return (
     <div className="w-full max-w-4xl mx-auto p-4">
       <div className="mb-4 text-center">
+        <hr className="mt-8 mb-4" />
         <h2 className="text-xl font-bold mt-4">MiniApp Context</h2>
         <p className="text-sm">
           {isReady ? (isMiniApp ? "✅ Ready (MiniApp)" : "✅ Ready (WebApp)") : "⏳ Loading..."}
@@ -192,6 +193,7 @@ export const MiniappUserInfo = () => {
             https://miniapps.farcaster.xyz/docs/sdk/context
           </Link>
         </div>
+        <hr className="mt-8 mb-4" />
         <div className="mt-6">
           <h2 className="text-xl font-bold text-center mt-4">Haptics Demo</h2>
           {!context.features?.haptics && <p className="text-red-500 text-center my-0">Haptics not available</p>}
