@@ -62,7 +62,7 @@ ngrok http http://localhost:42069
 
 4. Update NEXT_PUBLIC_URL and NEXT_PUBLIC_PONDER_URL in packages/nextjs/.env for your domain
 
-5. Go to https://farcaster.xyz/~/developers/mini-apps/preview , enter your app domain and click "Open URL as Mini App"
+5. Go to https://farcaster.xyz/~/developers/mini-apps/embed , enter your app domain and you should see your miniapp embed rendered.
 
 
 Your miniapp should load and show your Farcaster Wallet.
