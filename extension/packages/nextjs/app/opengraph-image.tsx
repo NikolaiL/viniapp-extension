@@ -119,11 +119,11 @@ export default async function Image() {
             display: "flex",
             alignItems: "center",
             gap: "12px",
-            fontSize: "28px",
+            fontSize: "36px",
             color: "#212639",
           }}
         >
-          <span>from</span>
+          <span>Greeting by</span>
           <span
             style={{
               color: "#60a5fa",
@@ -158,14 +158,13 @@ export default async function Image() {
               fontWeight: "bold",
               color: "#212639",
               lineHeight: "1.2",
-              maxWidth: "1000px",
               width: "100%",
               textAlign: "center",
               overflow: "hidden",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
               textOverflow: "ellipsis",
-              display: "-webkit-box",
-              WebkitLineClamp: "6",
-              WebkitBoxOrient: "vertical",
               margin: "0 auto",
             }}
           >
@@ -173,16 +172,17 @@ export default async function Image() {
           </div>
         </div>
 
-        {/* Bottom: Farcaster Mini App - outside the div, centered */}
+        {/* Bottom: Title - outside the div, centered */}
         <div
           style={{
             display: "flex",
+            marginTop: "60px",
             alignItems: "center",
-            fontSize: "24px",
-            color: "#666666",
+            fontSize: "48px",
+            color: "#212639",
           }}
         >
-          Farcaster Mini App
+          Scaffold-ETH 2  + MiniApp Extension
         </div>
       </div>
     ),
