@@ -88,8 +88,9 @@ And as a cast:
 
 - [x] added ponder 0.14.1  
 - [x] add live query example
-- [ ] add MiniApp Demo Page with all available functions
+- [x] add MiniApp Demo Page 
 - [x] add readme section about ponder
+- [ ] add more functions / calls to the demo page
 - [ ] add manifest accountAssociation values generation
 
 
