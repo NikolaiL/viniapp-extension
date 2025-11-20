@@ -43,7 +43,7 @@ NEXT_PUBLIC_APP_TAGLINE="Built with Scaffold ETH 2"
 # og values for twitter, facebook sharing
 NEXT_PUBLIC_APP_OG_TITLE="Scaffold-ETH 2 with MiniApp"
 NEXT_PUBLIC_APP_OG_DESCRIPTION="Built with Scaffold-ETH 2 with MiniApp Extension"
-NEXT_PUBLIC_APP_OG_IMAGE=\${NEXT_PUBLIC_URL}/thumbnail_miniapp.jpg
+NEXT_PUBLIC_APP_OG_IMAGE=\${NEXT_PUBLIC_URL}/opengraph-image
 
 # Descriptive tags for filtering/search. 
 # Comma-separated list of up to 5 tags

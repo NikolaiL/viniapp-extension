@@ -57,5 +57,5 @@ export const metadataOverrides = {
 export const titleTemplate = "%s | Scaffold-ETH 2 + MiniApp";
 
 
-export const thumbnailPath = "/thumbnail_miniapp.jpg";
+export const thumbnailPath = "/opengraph-image";
 
