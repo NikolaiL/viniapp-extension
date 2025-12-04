@@ -1,8 +1,8 @@
 "use client";
 
 import { Address } from "@scaffold-ui/components";
-import { useScaffoldEventHistory } from "~~/hooks/scaffold-eth";
 import { formatEther } from "viem";
+import { useScaffoldEventHistory } from "~~/hooks/scaffold-eth";
 
 type Greeting = {
   id: string;

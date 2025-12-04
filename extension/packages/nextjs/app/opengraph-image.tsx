@@ -2,9 +2,9 @@ import { ImageResponse } from "next/og";
 import { NextResponse } from "next/server";
 import { readFile } from "fs/promises";
 import { join } from "path";
-import { createPublicClient, formatEther, http, parseAbiItem } from "viem";
-import scaffoldConfig from "~~/scaffold.config";
+import { createPublicClient, http, parseAbiItem } from "viem";
 import deployedContracts from "~~/contracts/deployedContracts";
+import scaffoldConfig from "~~/scaffold.config";
 
 export const runtime = "nodejs";
 export const alt = "Greetings";
@@ -97,8 +97,6 @@ export default async function Image() {
   const greetingText = greeting.text;
   const walletAddress = greeting.setterId;
   const isPremium = greeting.premium;
-  const value = greeting.value;
-
   // Success color from global.css
   const successColor = "#34eeb6";
   const borderColor = isPremium ? successColor : "#DDDDDD"; // gray if not premium, green if premium
