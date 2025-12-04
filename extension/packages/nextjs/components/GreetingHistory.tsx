@@ -1,8 +1,7 @@
 "use client";
 
-import { sql } from "@ponder/client";
-import { usePonderQuery } from "@ponder/react";
 import { Address } from "@scaffold-ui/components";
+import { useScaffoldEventHistory } from "~~/hooks/scaffold-eth";
 import { formatEther } from "viem";
 
 type Greeting = {
@@ -11,57 +10,28 @@ type Greeting = {
   setterId: `0x${string}`;
   premium: boolean;
   value: bigint;
-  timestamp: number;
+  blockNumber: bigint;
 };
 
 export const GreetingHistory = () => {
-  const { data: result, isLoading } = usePonderQuery({
-    queryFn: db => db.execute<Greeting>(sql`SELECT * FROM greeting ORDER BY timestamp DESC LIMIT 20`),
+  const { data: events, isLoading } = useScaffoldEventHistory({
+    contractName: "YourContract",
+    eventName: "GreetingChange",
+    watch: true,
+    blockData: true,
   });
 
-  // Handle different response formats from db.execute
-  // db.execute typically returns { rows: [...] } or an array directly
-  let greetings: Greeting[] = [];
-
-  if (result) {
-    // Check if result has a 'rows' property (common SQL result format)
-    if (typeof result === "object" && result !== null && "rows" in result) {
-      const rows = (result as { rows: any[] }).rows;
-      if (rows && rows.length > 0) {
-        // Check if rows are arrays or objects
-        if (Array.isArray(rows[0])) {
-          // Rows are arrays - map to objects based on column order
-          greetings = rows.map((row: any[]) => ({
-            id: String(row[0] ?? ""),
-            text: String(row[1] ?? ""),
-            setterId: row[2] as `0x${string}`,
-            premium: Boolean(row[3]),
-            value: BigInt(row[4] ?? 0),
-            timestamp: Number(row[5] ?? 0),
-          }));
-        } else {
-          // Rows are objects
-          greetings = rows as Greeting[];
-        }
-      }
-    } else if (Array.isArray(result)) {
-      // Result is directly an array
-      if (result.length > 0 && Array.isArray(result[0])) {
-        // Array of arrays - map to objects
-        greetings = (result as unknown as any[][]).map((row: any[]) => ({
-          id: String(row[0] ?? ""),
-          text: String(row[1] ?? ""),
-          setterId: row[2] as `0x${string}`,
-          premium: Boolean(row[3]),
-          value: BigInt(row[4] ?? 0),
-          timestamp: Number(row[5] ?? 0),
-        }));
-      } else {
-        // Array of objects - use directly
-        greetings = result as Greeting[];
-      }
-    }
-  }
+  // Map events to Greeting format
+  const greetings: Greeting[] = events
+    ? events.map(event => ({
+        id: `${event.blockNumber}-${event.logIndex}`,
+        text: event.args.newGreeting || "",
+        setterId: (event.args.greetingSetter || "0x0") as `0x${string}`,
+        premium: event.args.premium || false,
+        value: event.args.value || BigInt(0),
+        blockNumber: event.blockNumber || BigInt(0),
+      }))
+    : [];
 
   if (isLoading) {
     return (
@@ -90,8 +60,6 @@ export const GreetingHistory = () => {
             <p className="text-4xl font-bold mb-2 text-center">{greeting.text}</p>
             <div className="flex items-center gap-2 flex-wrap justify-center">
               <Address address={greeting.setterId} />
-              <span className="text-base-content/60">•</span>
-              <span className="text-base-content/60">{new Date(greeting.timestamp * 1000).toLocaleString()}</span>
             </div>
             {greeting.premium && (
               <div className="flex items-center gap-2 mt-2 flex-wrap justify-center">

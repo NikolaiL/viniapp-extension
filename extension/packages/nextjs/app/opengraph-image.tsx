@@ -1,9 +1,10 @@
 import { ImageResponse } from "next/og";
 import { NextResponse } from "next/server";
 import { readFile } from "fs/promises";
-import { gql, request } from "graphql-request";
 import { join } from "path";
-import { formatEther } from "viem";
+import { createPublicClient, formatEther, http, parseAbiItem } from "viem";
+import scaffoldConfig from "~~/scaffold.config";
+import deployedContracts from "~~/contracts/deployedContracts";
 
 export const runtime = "nodejs";
 export const alt = "Greetings";
@@ -15,43 +16,52 @@ export const contentType = "image/png";
 export const revalidate = 600; // Revalidate every 10 minutes
 
 type Greeting = {
-  id: string;
   text: string;
   setterId: `0x${string}`;
   premium: boolean;
-  value: bigint | string; // GraphQL may return as string
-  timestamp: number;
-};
-
-type GreetingsData = {
-  greetings: {
-    items: Greeting[];
-  };
+  value: bigint;
 };
 
 async function getLatestGreeting(): Promise<Greeting | null> {
   try {
-    const ponderUrl = process.env.NEXT_PUBLIC_PONDER_URL || "http://localhost:42069";
-    const GreetingsQuery = gql`
-      query Greetings {
-        greetings(orderBy: "timestamp", orderDirection: "desc") {
-          items {
-            id
-            text
-            setterId
-            premium
-            value
-            timestamp
-          }
-        }
-      }
-    `;
+    const targetNetwork = scaffoldConfig.targetNetworks[0];
+    const contractData = deployedContracts[targetNetwork.id as keyof typeof deployedContracts]?.YourContract;
 
-    const data = await request<GreetingsData>(ponderUrl, GreetingsQuery);
-    // Get the first (latest) greeting
-    return data.greetings.items[0] || null;
+    if (!contractData) {
+      console.error("Contract not deployed on target network");
+      return null;
+    }
+
+    const publicClient = createPublicClient({
+      chain: targetNetwork,
+      transport: http(),
+    });
+
+    // Fetch GreetingChange events
+    const logs = await publicClient.getLogs({
+      address: contractData.address as `0x${string}`,
+      event: parseAbiItem(
+        "event GreetingChange(address indexed greetingSetter, string newGreeting, bool premium, uint256 value)",
+      ),
+      fromBlock: "earliest",
+      toBlock: "latest",
+    });
+
+    if (!logs || logs.length === 0) {
+      return null;
+    }
+
+    // Get the latest log (last in array)
+    const latestLog = logs[logs.length - 1];
+
+    return {
+      text: latestLog.args.newGreeting || "",
+      setterId: (latestLog.args.greetingSetter || "0x0") as `0x${string}`,
+      premium: latestLog.args.premium || false,
+      value: latestLog.args.value || BigInt(0),
+    };
   } catch (error) {
-    console.error("Error fetching greeting from Ponder:", error);
+    console.error("Error fetching greeting from contract:", error);
     return null;
   }
 }
@@ -87,12 +97,7 @@ export default async function Image() {
   const greetingText = greeting.text;
   const walletAddress = greeting.setterId;
   const isPremium = greeting.premium;
-  // Handle value as string or bigint from GraphQL
-  const value = greeting.value
-    ? typeof greeting.value === "string"
-      ? BigInt(greeting.value)
-      : greeting.value
-    : BigInt(0);
+  const value = greeting.value;
 
   // Success color from global.css
   const successColor = "#34eeb6";
@@ -182,7 +187,7 @@ export default async function Image() {
             color: "#212639",
           }}
         >
-          Scaffold-ETH 2  + MiniApp Extension
+          Scaffold-ETH 2 + MiniApp Extension
         </div>
       </div>
     ),

@@ -3,7 +3,6 @@ export const additionalVars = `
 NEXT_PUBLIC_APP_NAME='Scaffold-ETH 2 MiniApp'
 
 NEXT_PUBLIC_URL=https://yourdomain.dev
-NEXT_PUBLIC_PONDER_URL=https://yourponderdomain.dev
 
 # essential miniapp manifest related variables
 # you can get create them at https://farcaster.xyz/~/developers/mini-apps/manifest
@@ -48,7 +47,7 @@ NEXT_PUBLIC_APP_OG_IMAGE=\${NEXT_PUBLIC_URL}/opengraph-image
 # Descriptive tags for filtering/search. 
 # Comma-separated list of up to 5 tags
 # Each tag is: max 20 characters, lowercase, no spaces, no special characters, no emojis.
-NEXT_PUBLIC_APP_TAGS="scaffoldeth, miniapp, farcaster, base, ponder"
+NEXT_PUBLIC_APP_TAGS="scaffoldeth, miniapp, farcaster, base, viniapp"
 
 # comma separated list of screenshot images with full domain
 NEXT_PUBLIC_APP_SCREENSHOTS="\${NEXT_PUBLIC_URL}/thumbnail_miniapp.jpg, \${NEXT_PUBLIC_URL}/thumbnail_miniapp.jpg"
