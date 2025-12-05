@@ -1,6 +1,3 @@
-// Required for static export (IPFS builds)
-export const dynamic = "force-static";
-
 function withValidProperties(properties: Record<string, undefined | string | string[]>) {
   return Object.fromEntries(
     Object.entries(properties).filter(([, value]) => {
@@ -12,7 +9,7 @@ function withValidProperties(properties: Record<string, undefined | string | str
   );
 }
 
-function convertToJsonArraySafe(input: string): string[] {
+function convertToJsonArraySafe(input: string): array {
   // Split, trim each element, and filter out empty strings
   const array = input
     .split(",")
