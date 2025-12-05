@@ -2,7 +2,7 @@ export const additionalVars = `
 # essential miniapp related variables
 NEXT_PUBLIC_APP_NAME='Scaffold-ETH 2 MiniApp'
 
-NEXT_PUBLIC_URL=https://${VERCEL_PROJECT_PRODUCTION_URL}
+NEXT_PUBLIC_URL=https://\${VERCEL_PROJECT_PRODUCTION_URL}
 
 # essential miniapp manifest related variables
 # you can get create them at https://farcaster.xyz/~/developers/mini-apps/manifest
