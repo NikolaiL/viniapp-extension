@@ -22,27 +22,22 @@ export const imageSettings = {
     {
       name: "RubikBlack",
       data: await loadGoogleFont("Rubik:wght@800"),
-      style: "normal",
     },
     {
       name: "Rubik",
       data: await loadGoogleFont("Rubik:wght@400"),
-      style: "normal",
     },
     {
       name: "RubikBold",
       data: await loadGoogleFont("Rubik:wght@700"),
-      style: "normal",
     },
     {
       name: "RubikLight",
       data: await loadGoogleFont("Rubik:wght@300"),
-      style: "normal",
     },
     {
       name: "NotoSansBold",
       data: await loadGoogleFont("Noto+Sans+Mono:wght@700"),
-      style: "normal",
     },
   ],
 };
