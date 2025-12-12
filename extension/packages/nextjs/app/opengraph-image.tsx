@@ -8,9 +8,43 @@ import scaffoldConfig from "~~/scaffold.config";
 
 export const runtime = "nodejs";
 export const alt = "Greetings";
-export const size = {
+
+/**
+ * Image settings for the opengraph image
+ * Keep the size at 1200x800px
+ * If you need to add or change fonts, add them to the fonts array
+ * and update the fontFamily in the style props of the elements
+ */
+export const imageSettings = {
   width: 1200,
   height: 800,
+  fonts: [
+    {
+      name: "RubikBlack",
+      data: await loadGoogleFont("Rubik:wght@800"),
+      style: "normal",
+    },
+    {
+      name: "Rubik",
+      data: await loadGoogleFont("Rubik:wght@400"),
+      style: "normal",
+    },
+    {
+      name: "RubikBold",
+      data: await loadGoogleFont("Rubik:wght@700"),
+      style: "normal",
+    },
+    {
+      name: "RubikLight",
+      data: await loadGoogleFont("Rubik:wght@300"),
+      style: "normal",
+    },
+    {
+      name: "NotoSansBold",
+      data: await loadGoogleFont("Noto+Sans+Mono:wght@700"),
+      style: "normal",
+    },
+  ],
 };
 export const contentType = "image/png";
 export const revalidate = 600; // Revalidate every 10 minutes
@@ -21,6 +55,21 @@ type Greeting = {
   premium: boolean;
   value: bigint;
 };
+
+async function loadGoogleFont(font: string) {
+  const url = `https://fonts.googleapis.com/css2?family=${font}`;
+  const css = await (await fetch(url)).text();
+  const resource = css.match(/src: url\((.+)\) format\('(opentype|truetype)'\)/);
+
+  if (resource) {
+    const response = await fetch(resource[1]);
+    if (response.status == 200) {
+      return await response.arrayBuffer();
+    }
+  }
+
+  throw new Error("failed to load font data");
+}
 
 async function getLatestGreeting(): Promise<Greeting | null> {
   try {
@@ -112,7 +161,7 @@ export default async function Image() {
           alignItems: "center",
           justifyContent: "center",
           backgroundColor: "#FAFBFF",
-          fontFamily: "system-ui, -apple-system, sans-serif",
+          fontFamily: "Rubik, sans-serif",
           gap: "30px",
         }}
       >
@@ -130,8 +179,8 @@ export default async function Image() {
           <span
             style={{
               color: "#60a5fa",
-              fontFamily: "monospace",
-              fontWeight: "600",
+              fontFamily: "RubikBlack, sans-serif",
+              fontWeight: "800",
             }}
           >
             {formatAddress(walletAddress)}
@@ -183,6 +232,7 @@ export default async function Image() {
             alignItems: "center",
             fontSize: "48px",
             color: "#212639",
+            fontFamily: "NotoSansBold, system-ui, -apple-system, sans-serif",
           }}
         >
           Scaffold-ETH 2 + MiniApp Extension
@@ -190,7 +240,7 @@ export default async function Image() {
       </div>
     ),
     {
-      ...size,
+      ...imageSettings,
     },
   );
 }
