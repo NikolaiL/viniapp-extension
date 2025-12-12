@@ -25,7 +25,7 @@ export const imageSettings = {
     },
     {
       name: "Rubik",
-      data: await loadGoogleFont("Rubik:wght@300;400;700;800"),
+      data: await loadGoogleFont("Rubik:wght@400"),
     },
     {
       name: "RubikBold",
