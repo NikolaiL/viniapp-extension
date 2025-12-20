@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from "react";
 
 /**
  * Multi-platform provider for VINI apps
@@ -10,7 +10,13 @@ import { createContext, useContext, useEffect, useState, ReactNode } from "react
  * 1. Telegram WebApp (checks window.Telegram)
  * 2. Worldcoin MiniKit (checks for World App user agent or MiniKit)
  * 3. Farcaster/Base (uses @farcaster/miniapp-sdk)
+ * 
+ * Automatically tracks app opens to the backend for analytics.
  */
+
+// Backend URL for analytics tracking
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || process.env.NEXT_PUBLIC_VINI_BACKEND_URL || "https://api.vini.app";
+const VINIAPP_ID = process.env.NEXT_PUBLIC_VINIAPP_ID;
 
 export type Platform = "farcaster" | "base" | "worldcoin" | "telegram" | "web";
 
@@ -105,6 +111,33 @@ export const PlatformProvider = ({
   // Platform-specific handlers
   const [farcasterSdk, setFarcasterSdk] = useState<any>(null);
   const [telegramWebApp, setTelegramWebApp] = useState<any>(null);
+  const [hasTrackedOpen, setHasTrackedOpen] = useState(false);
+
+  // Track app open to backend
+  const trackAppOpen = useCallback(async (
+    platform: string,
+    userId?: string,
+    clientFid?: string
+  ) => {
+    if (hasTrackedOpen || !VINIAPP_ID) return;
+    
+    setHasTrackedOpen(true);
+
+    try {
+      await fetch(`${BACKEND_URL}/api/viniapps/${VINIAPP_ID}/analytics/open`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          platform,
+          user_id: userId,
+          client_fid: clientFid,
+        }),
+      });
+      console.log(`[Platform] Tracked app open: ${platform}`);
+    } catch (error) {
+      console.warn("[Platform] Failed to track app open:", error);
+    }
+  }, [hasTrackedOpen]);
 
   useEffect(() => {
     const detectAndInitialize = async () => {
@@ -132,6 +165,8 @@ export const PlatformProvider = ({
             isInApp: true,
             initData: telegram.initData,
           });
+          // Track app open
+          trackAppOpen("telegram", user ? String(user.id) : undefined);
           return;
         }
       }
@@ -155,6 +190,8 @@ export const PlatformProvider = ({
               isInApp: true,
               isVerified: false,
             });
+            // Track app open
+            trackAppOpen("worldcoin");
             return;
           } catch (err) {
             console.warn("[Platform] MiniKit not available:", err);
@@ -192,6 +229,12 @@ export const PlatformProvider = ({
               isInApp: true,
               clientFid,
             });
+            // Track app open
+            trackAppOpen(
+              detectedPlatform,
+              sdkContext.user ? String(sdkContext.user.fid) : undefined,
+              clientFid ? String(clientFid) : undefined
+            );
             return;
           }
         } catch (err) {
@@ -207,10 +250,12 @@ export const PlatformProvider = ({
         isReady: true,
         isInApp: false,
       });
+      // Track web open
+      trackAppOpen("web");
     };
 
     detectAndInitialize();
-  }, [enabledPlatforms]);
+  }, [enabledPlatforms, trackAppOpen]);
 
   // Common action: Open Link
   const openLink = async (url: string) => {
