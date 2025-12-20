@@ -1,39 +1,46 @@
-# Analytics Environment Variables
+# Analytics Configuration
 
-Add these to your `.env.local` or deployment environment:
+**No environment variables needed!** The mini app auto-detects its configuration from the VINI backend by domain.
+
+## How It Works
+
+1. **User configures in VINI Dashboard** → Config page → Analytics & Tracking
+2. **Mini app deploys** → Domain gets stored in `website_url`
+3. **User opens mini app** → App fetches config by `window.location.hostname`
+4. **Backend returns** → GA ID, GTM ID, app name, primary color
+5. **Scripts injected** → GA4/GTM loads dynamically
+
+```
+User visits: https://myapp.vercel.app
+     ↓
+GET /api/viniapp/lookup?domain=myapp.vercel.app
+     ↓
+Backend returns: { id: 123, google_analytics_id: "G-XXX", gtm_id: "GTM-YYY" }
+     ↓
+Analytics scripts injected, app open tracked
+```
+
+## Optional Environment Variables
+
+You can override auto-detection if needed:
 
 ```bash
-# Required: Your VINI App ID (from the VINI dashboard)
+# Force a specific viniapp ID (bypasses domain lookup)
 NEXT_PUBLIC_VINIAPP_ID=123
 
-# Required: Backend URL for analytics API
+# Override backend URL (default: https://api.vini.app)
 NEXT_PUBLIC_BACKEND_URL=https://api.vini.app
-# or
-NEXT_PUBLIC_VINI_BACKEND_URL=https://api.vini.app
 
-# Optional: Override analytics IDs (if not fetching from backend)
-# These take priority over backend-fetched values
+# Override analytics IDs (bypasses backend fetch)
 NEXT_PUBLIC_GOOGLE_ANALYTICS_ID=G-XXXXXXXXXX
 NEXT_PUBLIC_GTM_ID=GTM-XXXXXXX
 ```
 
-## How it works
-
-1. **App Open Tracking**: When the mini app loads, the `PlatformProvider` automatically:
-   - Detects which platform the user is on (Farcaster, Base, Worldcoin, Telegram, Web)
-   - Sends an app open event to `POST /api/viniapps/{id}/analytics/open`
-   - Records the platform, user ID (if available), and client FID
-
-2. **Google Analytics / GTM**: The `AnalyticsProvider` component:
-   - Fetches analytics config from the backend (or uses env vars)
-   - Injects GA4 and/or GTM scripts automatically
-   - Provides `trackEvent()` for custom event tracking
-
 ## Usage
 
-### Option 1: Automatic (Recommended)
+### Basic (Recommended)
 
-Wrap your app with both providers:
+Just wrap your app - everything is automatic:
 
 ```tsx
 import { PlatformProvider } from "~~/components/PlatformProvider";
@@ -50,14 +57,21 @@ export default function Layout({ children }) {
 }
 ```
 
-### Option 2: Build-time injection
+The providers will:
+1. Auto-detect the viniapp by domain
+2. Fetch GA/GTM IDs from backend
+3. Inject analytics scripts
+4. Track app opens by platform (farcaster, base, worldcoin, telegram, web)
 
-For static sites or if you want to bake in the analytics IDs at build time:
+### With Static Config
+
+For testing or static sites:
 
 ```tsx
 <AnalyticsProvider staticConfig={{
   googleAnalyticsId: "G-XXXXXXXXXX",
-  gtmId: "GTM-XXXXXXX"
+  gtmId: "GTM-XXXXXXX",
+  viniappId: 123
 }}>
   {children}
 </AnalyticsProvider>
@@ -69,15 +83,44 @@ For static sites or if you want to bake in the analytics IDs at build time:
 import { useAnalytics } from "~~/components/AnalyticsProvider";
 
 function MyComponent() {
-  const { trackEvent } = useAnalytics();
+  const { trackEvent, config } = useAnalytics();
   
   const handleClick = () => {
     trackEvent("button_click", {
       button_name: "signup",
-      location: "header"
+      app_name: config.appName,
     });
   };
   
   return <button onClick={handleClick}>Sign Up</button>;
 }
 ```
+
+## API Endpoint
+
+The mini app calls this endpoint to get its config:
+
+```
+GET /api/viniapp/lookup?domain=myapp.vercel.app
+
+Response:
+{
+  "id": 123,
+  "name": "My App",
+  "google_analytics_id": "G-XXXXXXXXXX",
+  "gtm_id": "GTM-XXXXXXX",
+  "primary_color": "#6366f1",
+  "platforms": ["farcaster", "base"],
+  "platform_config": {}
+}
+```
+
+## What Gets Tracked
+
+| Event | When | Data |
+|-------|------|------|
+| App Open | On load | platform, user_id, client_fid |
+| Page View | Auto (GA4) | page_path |
+| Custom | Your code | Any params |
+
+Platform values: `farcaster`, `base`, `worldcoin`, `telegram`, `web`

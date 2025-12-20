@@ -7,20 +7,27 @@ import Script from "next/script";
  * Analytics Provider for VINI Mini Apps
  * 
  * Handles:
+ * - Auto-detecting viniapp by domain (no env vars needed!)
  * - Fetching analytics config from backend (GA ID, GTM ID)
  * - Injecting Google Analytics and/or Tag Manager scripts
  * - Tracking app opens by platform
  * 
  * Usage:
- * 1. Set NEXT_PUBLIC_VINIAPP_ID in your .env
- * 2. Wrap your app with <AnalyticsProvider>
- * 3. Use useAnalytics() hook to track custom events
+ * Simply wrap your app with <AnalyticsProvider>
+ * The provider will auto-detect the viniapp by the current domain.
+ * 
+ * Optional env vars (override auto-detection):
+ * - NEXT_PUBLIC_VINIAPP_ID: Force a specific viniapp ID
+ * - NEXT_PUBLIC_GOOGLE_ANALYTICS_ID: Override GA ID
+ * - NEXT_PUBLIC_GTM_ID: Override GTM ID
  */
 
 interface AnalyticsConfig {
   googleAnalyticsId: string | null;
   gtmId: string | null;
   viniappId: number | null;
+  appName: string | null;
+  primaryColor: string | null;
 }
 
 interface AnalyticsContextType {
@@ -40,12 +47,24 @@ export const useAnalytics = () => {
   return ctx;
 };
 
+// Also export a safe version that returns defaults when not in provider
+export const useAnalyticsSafe = () => {
+  const ctx = useContext(AnalyticsContext);
+  return ctx ?? {
+    config: { googleAnalyticsId: null, gtmId: null, viniappId: null, appName: null, primaryColor: null },
+    isReady: false,
+    trackEvent: () => {},
+    trackAppOpen: async () => {},
+  };
+};
+
 interface AnalyticsProviderProps {
   children: ReactNode;
   // Optionally pass config directly (for build-time injection)
   staticConfig?: {
     googleAnalyticsId?: string;
     gtmId?: string;
+    viniappId?: number;
   };
 }
 
@@ -57,27 +76,55 @@ export const AnalyticsProvider = ({ children, staticConfig }: AnalyticsProviderP
   const [config, setConfig] = useState<AnalyticsConfig>({
     googleAnalyticsId: staticConfig?.googleAnalyticsId || process.env.NEXT_PUBLIC_GOOGLE_ANALYTICS_ID || null,
     gtmId: staticConfig?.gtmId || process.env.NEXT_PUBLIC_GTM_ID || null,
-    viniappId: VINIAPP_ID ? parseInt(VINIAPP_ID, 10) : null,
+    viniappId: staticConfig?.viniappId || (VINIAPP_ID ? parseInt(VINIAPP_ID, 10) : null),
+    appName: null,
+    primaryColor: null,
   });
   const [isReady, setIsReady] = useState(false);
   const [hasTrackedOpen, setHasTrackedOpen] = useState(false);
 
-  // Fetch config from backend if VINIAPP_ID is set and we don't have static config
+  // Auto-detect viniapp by domain or use VINIAPP_ID
   useEffect(() => {
     const fetchConfig = async () => {
-      if (!VINIAPP_ID || (staticConfig?.googleAnalyticsId || staticConfig?.gtmId)) {
+      // If we have static config for analytics, use it directly
+      if (staticConfig?.googleAnalyticsId || staticConfig?.gtmId) {
         setIsReady(true);
         return;
       }
 
       try {
-        const response = await fetch(`${BACKEND_URL}/api/viniapps/${VINIAPP_ID}/analytics/settings`);
-        if (response.ok) {
-          const data = await response.json();
+        let data: any = null;
+
+        // Priority 1: Use VINIAPP_ID if set
+        if (VINIAPP_ID) {
+          const response = await fetch(`${BACKEND_URL}/api/viniapps/${VINIAPP_ID}/analytics/settings`);
+          if (response.ok) {
+            data = await response.json();
+            data.id = parseInt(VINIAPP_ID, 10);
+          }
+        } 
+        // Priority 2: Auto-detect by domain
+        else if (typeof window !== "undefined") {
+          const domain = window.location.hostname;
+          console.log("[Analytics] Auto-detecting viniapp by domain:", domain);
+          
+          const response = await fetch(`${BACKEND_URL}/api/viniapp/lookup?domain=${encodeURIComponent(domain)}`);
+          if (response.ok) {
+            data = await response.json();
+            console.log("[Analytics] Found viniapp:", data.name, "ID:", data.id);
+          } else {
+            console.log("[Analytics] No viniapp found for domain:", domain);
+          }
+        }
+
+        if (data) {
           setConfig(prev => ({
             ...prev,
+            viniappId: data.id || prev.viniappId,
             googleAnalyticsId: data.google_analytics_id || prev.googleAnalyticsId,
             gtmId: data.gtm_id || prev.gtmId,
+            appName: data.name || prev.appName,
+            primaryColor: data.primary_color || prev.primaryColor,
           }));
         }
       } catch (error) {
@@ -97,14 +144,21 @@ export const AnalyticsProvider = ({ children, staticConfig }: AnalyticsProviderP
     }
   };
 
-  // Track app open
+  // Track app open - uses dynamically fetched viniappId
   const trackAppOpen = async (platform: string, userId?: string, clientFid?: string) => {
-    if (hasTrackedOpen || !VINIAPP_ID) return;
+    if (hasTrackedOpen) return;
+    
+    // Wait for config to be ready if we don't have viniappId yet
+    const viniappId = config.viniappId;
+    if (!viniappId) {
+      console.log("[Analytics] No viniappId available, skipping app open tracking");
+      return;
+    }
     
     setHasTrackedOpen(true);
 
     try {
-      await fetch(`${BACKEND_URL}/api/viniapps/${VINIAPP_ID}/analytics/open`, {
+      await fetch(`${BACKEND_URL}/api/viniapps/${viniappId}/analytics/open`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -113,7 +167,7 @@ export const AnalyticsProvider = ({ children, staticConfig }: AnalyticsProviderP
           client_fid: clientFid,
         }),
       });
-      console.log(`[Analytics] Tracked app open: ${platform}`);
+      console.log(`[Analytics] Tracked app open: ${platform} for viniapp ${viniappId}`);
 
       // Also track in GA4 if available
       trackEvent("app_open", {

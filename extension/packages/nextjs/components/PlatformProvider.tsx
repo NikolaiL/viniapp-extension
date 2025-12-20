@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from "react";
+import { createContext, useContext, useEffect, useState, ReactNode, useCallback, useRef } from "react";
 
 /**
  * Multi-platform provider for VINI apps
@@ -12,11 +12,12 @@ import { createContext, useContext, useEffect, useState, ReactNode, useCallback 
  * 3. Farcaster/Base (uses @farcaster/miniapp-sdk)
  * 
  * Automatically tracks app opens to the backend for analytics.
+ * Auto-detects viniapp by domain - no env vars needed!
  */
 
 // Backend URL for analytics tracking
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || process.env.NEXT_PUBLIC_VINI_BACKEND_URL || "https://api.vini.app";
-const VINIAPP_ID = process.env.NEXT_PUBLIC_VINIAPP_ID;
+const VINIAPP_ID_ENV = process.env.NEXT_PUBLIC_VINIAPP_ID;
 
 export type Platform = "farcaster" | "base" | "worldcoin" | "telegram" | "web";
 
@@ -112,6 +113,57 @@ export const PlatformProvider = ({
   const [farcasterSdk, setFarcasterSdk] = useState<any>(null);
   const [telegramWebApp, setTelegramWebApp] = useState<any>(null);
   const [hasTrackedOpen, setHasTrackedOpen] = useState(false);
+  const [viniappId, setViniappId] = useState<number | null>(VINIAPP_ID_ENV ? parseInt(VINIAPP_ID_ENV, 10) : null);
+  const pendingTrackRef = useRef<{ platform: string; userId?: string; clientFid?: string } | null>(null);
+
+  // Auto-detect viniappId by domain if not set via env
+  useEffect(() => {
+    if (viniappId || typeof window === "undefined") return;
+
+    const lookupByDomain = async () => {
+      try {
+        const domain = window.location.hostname;
+        const response = await fetch(`${BACKEND_URL}/api/viniapp/lookup?domain=${encodeURIComponent(domain)}`);
+        if (response.ok) {
+          const data = await response.json();
+          console.log("[Platform] Auto-detected viniapp:", data.name, "ID:", data.id);
+          setViniappId(data.id);
+        }
+      } catch (error) {
+        console.warn("[Platform] Failed to lookup viniapp by domain:", error);
+      }
+    };
+
+    lookupByDomain();
+  }, [viniappId]);
+
+  // Track pending open once viniappId is available
+  useEffect(() => {
+    if (!viniappId || !pendingTrackRef.current || hasTrackedOpen) return;
+
+    const { platform, userId, clientFid } = pendingTrackRef.current;
+    pendingTrackRef.current = null;
+    
+    const doTrack = async () => {
+      setHasTrackedOpen(true);
+      try {
+        await fetch(`${BACKEND_URL}/api/viniapps/${viniappId}/analytics/open`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            platform,
+            user_id: userId,
+            client_fid: clientFid,
+          }),
+        });
+        console.log(`[Platform] Tracked app open: ${platform}`);
+      } catch (error) {
+        console.warn("[Platform] Failed to track app open:", error);
+      }
+    };
+
+    doTrack();
+  }, [viniappId, hasTrackedOpen]);
 
   // Track app open to backend
   const trackAppOpen = useCallback(async (
@@ -119,25 +171,31 @@ export const PlatformProvider = ({
     userId?: string,
     clientFid?: string
   ) => {
-    if (hasTrackedOpen || !VINIAPP_ID) return;
-    
-    setHasTrackedOpen(true);
+    if (hasTrackedOpen) return;
 
-    try {
-      await fetch(`${BACKEND_URL}/api/viniapps/${VINIAPP_ID}/analytics/open`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          platform,
-          user_id: userId,
-          client_fid: clientFid,
-        }),
-      });
-      console.log(`[Platform] Tracked app open: ${platform}`);
-    } catch (error) {
-      console.warn("[Platform] Failed to track app open:", error);
+    // If we have viniappId, track immediately
+    if (viniappId) {
+      setHasTrackedOpen(true);
+      try {
+        await fetch(`${BACKEND_URL}/api/viniapps/${viniappId}/analytics/open`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            platform,
+            user_id: userId,
+            client_fid: clientFid,
+          }),
+        });
+        console.log(`[Platform] Tracked app open: ${platform}`);
+      } catch (error) {
+        console.warn("[Platform] Failed to track app open:", error);
+      }
+    } else {
+      // Queue for later when viniappId is available
+      console.log(`[Platform] Queuing app open track for: ${platform}`);
+      pendingTrackRef.current = { platform, userId, clientFid };
     }
-  }, [hasTrackedOpen]);
+  }, [hasTrackedOpen, viniappId]);
 
   useEffect(() => {
     const detectAndInitialize = async () => {
