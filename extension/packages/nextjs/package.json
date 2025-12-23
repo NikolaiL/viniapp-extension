@@ -1,7 +1,9 @@
 {
     "dependencies": {
       "@farcaster/miniapp-sdk": "^0.2.1",
-      "@farcaster/miniapp-wagmi-connector": "^1.1.0"
+      "@farcaster/miniapp-wagmi-connector": "^1.1.0",
+      "@worldcoin/minikit-js": "^1.7.2",
+      "@telegram-apps/sdk": "^2.11.3"
     }
   }
   
