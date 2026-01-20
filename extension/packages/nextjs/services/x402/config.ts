@@ -20,17 +20,6 @@ export interface X402ServiceConfig {
 }
 
 /**
- * Get the proxied URL for an x402 endpoint
- * This routes requests through our API proxy to avoid CORS issues
- *
- * @param endpoint - The original x402 endpoint URL
- * @returns The proxied URL that goes through /api/x402
- */
-export function getProxiedUrl(endpoint: string): string {
-  return `/api/x402?url=${encodeURIComponent(endpoint)}`;
-}
-
-/**
  * Horoscope API - Generates personalized daily horoscopes
  * Network: Base Mainnet
  * Pricing: Dynamic (fetched from 402 response)

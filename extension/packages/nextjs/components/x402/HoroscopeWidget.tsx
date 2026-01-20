@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useAccount } from "wagmi";
 import { useX402Fetch } from "~~/hooks/useX402Fetch";
-import { HOROSCOPE_SERVICE, getProxiedUrl } from "~~/services/x402/config";
+import { HOROSCOPE_SERVICE } from "~~/services/x402/config";
 
 // Zodiac signs with their symbols
 const ZODIAC_SIGNS = [
@@ -77,8 +77,8 @@ export function HoroscopeWidget() {
         body.focus_area = focusArea;
       }
 
-      // Make the x402 request through the proxy - payment is handled automatically
-      const response = await fetchWithPayment(getProxiedUrl(HOROSCOPE_SERVICE.endpoint), {
+      // Make the x402 request directly - payment is handled automatically
+      const response = await fetchWithPayment(HOROSCOPE_SERVICE.endpoint, {
         method: HOROSCOPE_SERVICE.method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
