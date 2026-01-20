@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useAccount } from "wagmi";
 import { useX402Fetch } from "~~/hooks/useX402Fetch";
-import { HOROSCOPE_SERVICE } from "~~/services/x402/config";
+import { HOROSCOPE_SERVICE, parseX402Error } from "~~/services/x402/config";
 
 // Zodiac signs with their symbols
 const ZODIAC_SIGNS = [
@@ -85,6 +85,13 @@ export function HoroscopeWidget() {
       });
 
       if (!response.ok) {
+        // Check for x402 payment errors first
+        if (response.status === 402) {
+          const x402Error = parseX402Error(response);
+          if (x402Error) {
+            throw new Error(x402Error);
+          }
+        }
         const errorText = await response.text();
         throw new Error(`Request failed: ${response.status} ${errorText}`);
       }
