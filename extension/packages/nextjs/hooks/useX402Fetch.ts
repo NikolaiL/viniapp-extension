@@ -1,6 +1,6 @@
 import { useCallback, useMemo } from "react";
-import { registerExactEvmScheme } from "@x402/evm/exact/client";
-import { wrapFetchWithPayment, x402Client } from "@x402/fetch";
+import { ExactEvmScheme } from "@x402/evm";
+import { wrapFetchWithPaymentFromConfig } from "@x402/fetch";
 import { useAccount, useWalletClient } from "wagmi";
 
 /**
@@ -44,21 +44,18 @@ export function useX402Fetch() {
     }
 
     try {
-      // Initialize x402 client
-      const client = new x402Client();
-
       // Create a signer object that includes the address and wallet client methods
-      // The x402 EVM scheme requires an address property on the signer
-      const signer = {
+      // The ExactEvmScheme requires an account with an address property
+      const account = {
         ...walletClient,
         address: address as `0x${string}`,
       };
 
-      // Register the EVM payment scheme with the connected wallet
-      registerExactEvmScheme(client, { signer });
-
-      // Wrap fetch with payment capabilities
-      const wrappedFetch = wrapFetchWithPayment(fetch, client);
+      // Wrap fetch with payment capabilities using the new config-based API
+      // Using Base chain (eip155:8453) as configured in scaffold.config.ts
+      const wrappedFetch = wrapFetchWithPaymentFromConfig(fetch, {
+        schemes: [{ network: "eip155:8453", client: new ExactEvmScheme(account) }],
+      });
 
       return {
         fetchWithPayment: wrappedFetch,
