@@ -51,4 +51,6 @@ NEXT_PUBLIC_APP_TAGS="scaffoldeth, miniapp, farcaster, base, viniapp"
 
 # comma separated list of screenshot images with full domain
 NEXT_PUBLIC_APP_SCREENSHOTS="\${NEXT_PUBLIC_URL}/thumbnail_miniapp.jpg, \${NEXT_PUBLIC_URL}/thumbnail_miniapp.jpg"
+NEXT_PUBLIC_AUTO_ADD_MINIAPP=true
+NEXT_PUBLIC_WEBHOOK_URL=https://viniapp.api.viniapp.xyz/api/miniapp_webhook
 `;

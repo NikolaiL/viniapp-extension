@@ -246,6 +246,17 @@ export const MiniappProvider = ({ children }: MiniappProviderProps) => {
         setContext(fullContext);
         setIsMiniApp(inMiniApp);
         setIsReady(true);
+        
+        // Prompt user to add the miniapp if they haven't already
+        const added = fullContext.client?.added ?? false;
+        const autoAdd = process.env.NEXT_PUBLIC_AUTO_ADD_MINIAPP !== "false";
+        if (!added && inMiniApp && autoAdd) {
+          try {
+            await sdk.actions.addMiniApp();
+          } catch (e) {
+            console.log("Error adding mini app:", e);
+          }
+        }
       } catch (error) {
         console.error("MiniApp SDK initialization error:", error);
         // Still mark as ready even on error to prevent infinite loading
