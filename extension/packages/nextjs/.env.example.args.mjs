@@ -54,10 +54,6 @@ NEXT_PUBLIC_APP_SCREENSHOTS="\${NEXT_PUBLIC_URL}/thumbnail_miniapp.jpg, \${NEXT_
 NEXT_PUBLIC_AUTO_ADD_MINIAPP=true
 NEXT_PUBLIC_WEBHOOK_URL=https://viniapp.api.viniapp.xyz/api/miniapp_webhook
 
-# Usage tracking (CDP_PROXY_KEY is server-side only)
-CDP_PROXY_KEY=
-NEXT_PUBLIC_VINIAPP_BACKEND=https://api.viniapp.xyz
-
 # Google Analytics / GTM (optional, set via Viniapp config)
 NEXT_PUBLIC_GA_ID=
 NEXT_PUBLIC_GTM_ID=

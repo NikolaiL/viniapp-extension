@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(request: NextRequest) {
   const cdpKey = process.env.CDP_PROXY_KEY;
-  const backendUrl = process.env.NEXT_PUBLIC_VINIAPP_BACKEND;
+  const backendUrl = process.env.VINIAPP_BACKEND;
 
   if (!cdpKey || !backendUrl) {
     return NextResponse.json({ success: true, skipped: true });
