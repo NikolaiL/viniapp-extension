@@ -257,6 +257,32 @@ export const MiniappProvider = ({ children }: MiniappProviderProps) => {
             console.log("Error adding mini app:", e);
           }
         }
+
+        // Fire-and-forget usage tracking
+        try {
+          const trackingPayload: Record<string, unknown> = {
+            platform: "farcaster",
+            page_url: typeof window !== "undefined" ? window.location.href : undefined,
+            fid: fullContext.user?.fid,
+            username: fullContext.user?.username,
+            client_fid: fullContext.client?.clientFid ? String(fullContext.client.clientFid) : undefined,
+          };
+          if (inMiniApp) {
+            try {
+              const { token } = await sdk.quickAuth.getToken();
+              trackingPayload.fc_token = token;
+            } catch {
+              /* token not available */
+            }
+          }
+          fetch("/api/track/open", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(trackingPayload),
+          }).catch(() => {});
+        } catch {
+          /* tracking should never block the app */
+        }
       } catch (error) {
         console.error("MiniApp SDK initialization error:", error);
         // Still mark as ready even on error to prevent infinite loading
