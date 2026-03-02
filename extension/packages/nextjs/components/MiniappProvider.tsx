@@ -265,7 +265,9 @@ export const MiniappProvider = ({ children }: MiniappProviderProps) => {
             page_url: typeof window !== "undefined" ? window.location.href : undefined,
             fid: fullContext.user?.fid,
             username: fullContext.user?.username,
-            client_fid: fullContext.client?.clientFid ? String(fullContext.client.clientFid) : undefined,
+            client_fid: fullContext.client?.clientFid
+              ? String(fullContext.client.clientFid)
+              : undefined,
           };
           if (inMiniApp) {
             try {

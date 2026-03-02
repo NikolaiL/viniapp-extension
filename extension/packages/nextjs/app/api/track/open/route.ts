@@ -59,3 +59,4 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: false, error: "Tracking failed" }, { status: 500 });
   }
 }
+
