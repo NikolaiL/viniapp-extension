@@ -103,8 +103,27 @@ A Mini App URL must have a MiniAppEmbed in a serialized form in the `fc:miniapp`
 #### Button Schema
 | Property | Type | Required | Description | Constraints |
 | -------- | ------ | -------- | -------------- | --------------------------- |
-| title | string | Yes | Mini App name. | Max length 32 characters |
+| title | string | Yes | Mini App name. | **Max length 32 characters** |
 | action | object | Yes | Action to perform when button is clicked | |
+
+#### Action Schema
+| Property | Type | Required | Description | Constraints |
+| -------- | ------ | -------- | -------------- | --------------------------- |
+| type | string | Yes | The type of action. | `"launch_frame"` or `"launch_miniapp"` |
+| url | string | No | App URL to open. Defaults to the URL used to fetch the document. | **Max length 1024 characters** |
+| name | string | Yes | Name of the application | **Max length 32 characters** |
+| splashImageUrl | string | No | URL of image to show on loading screen. | Must be 200x200px |
+| splashBackgroundColor | string | No | Hex color code for loading screen. | Hex color code (e.g. `#212638`) |
+
+#### Spec Limit Enforcement
+
+Dynamic values (user names, page titles, generated descriptions) can easily exceed spec limits. The `buildMiniappEmbed` function in `getMetadata.ts` automatically enforces these via `truncate()` and `clampUrl()` helpers. If you construct embed JSON manually anywhere, you **must** enforce:
+- `button.title`: truncate to 32 chars
+- `button.action.name`: truncate to 32 chars
+- `imageUrl`: clamp to 1024 chars
+- `button.action.url`: clamp to 1024 chars
+
+Violating these limits causes embeds to **fail silently** — no error, just a broken or missing embed in Farcaster feeds.
 
 ## Why Farcaster Doesn't Need OAuth 2.0
 OAuth exists to let three separate parties (user → platform → third-party app) establish mutual trust. Farcaster is built on a decentralized architecture that collapses this triangle:

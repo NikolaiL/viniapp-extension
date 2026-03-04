@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useEffect, useState } from "react";
 import { sdk } from "@farcaster/miniapp-sdk";
+import { useAccount } from "wagmi";
 
 /**
  * Full Farcaster SDK context types
@@ -111,6 +112,8 @@ interface MiniappContextType {
   context: FullMiniAppContext;
   isReady: boolean;
   isMiniApp: boolean;
+  platform: "farcaster" | "web";
+  walletAddress: string | undefined;
   openLink: (url: string) => Promise<void>;
   composeCast: (params: { text: string; embeds?: string[] }) => Promise<void>;
   openProfile: (params: { fid?: number; username?: string }) => Promise<void>;
@@ -145,6 +148,8 @@ export const MiniappProvider = ({ children }: MiniappProviderProps) => {
   const [context, setContext] = useState<FullMiniAppContext>({ user: null });
   const [isReady, setIsReady] = useState(false);
   const [isMiniApp, setIsMiniApp] = useState(false);
+  const [platform, setPlatform] = useState<"farcaster" | "web">("web");
+  const { address } = useAccount();
 
   const composeCast = async ({ text, embeds = [] }: { text: string; embeds?: string[] }) => {
     try {
@@ -222,14 +227,27 @@ export const MiniappProvider = ({ children }: MiniappProviderProps) => {
   useEffect(() => {
     const initialize = async () => {
       try {
-        // Call ready() to dismiss splash screen
+        let inMiniApp = false;
+        try {
+          inMiniApp = await Promise.race([
+            sdk.isInMiniApp(),
+            new Promise<boolean>(resolve => setTimeout(() => resolve(false), 1000)),
+          ]);
+        } catch {
+          inMiniApp = false;
+        }
+
+        if (!inMiniApp) {
+          setIsMiniApp(false);
+          setPlatform("web");
+          setIsReady(true);
+          return;
+        }
+
         await sdk.actions.ready();
 
-        // Fetch full context and environment
         const sdkContext = await sdk.context;
-        const inMiniApp = await sdk.isInMiniApp();
 
-        // Store full context
         const fullContext: FullMiniAppContext = {
           user: sdkContext?.user ?? null,
           location: sdkContext?.location,
@@ -237,57 +255,24 @@ export const MiniappProvider = ({ children }: MiniappProviderProps) => {
           features: sdkContext?.features,
         };
 
-        // Log initialization results
         console.log("MiniApp SDK ready");
-        console.log("Full context:", fullContext);
-        console.log("Is MiniApp:", inMiniApp);
 
-        // Update state
         setContext(fullContext);
-        setIsMiniApp(inMiniApp);
+        setIsMiniApp(true);
+        setPlatform("farcaster");
         setIsReady(true);
-        
-        // Prompt user to add the miniapp if they haven't already
+
         const added = fullContext.client?.added ?? false;
         const autoAdd = process.env.NEXT_PUBLIC_AUTO_ADD_MINIAPP !== "false";
-        if (!added && inMiniApp && autoAdd) {
+        if (!added && autoAdd) {
           try {
             await sdk.actions.addMiniApp();
           } catch (e) {
             console.log("Error adding mini app:", e);
           }
         }
-
-        // Fire-and-forget usage tracking
-        try {
-          const trackingPayload: Record<string, unknown> = {
-            platform: "farcaster",
-            page_url: typeof window !== "undefined" ? window.location.href : undefined,
-            fid: fullContext.user?.fid,
-            username: fullContext.user?.username,
-            client_fid: fullContext.client?.clientFid
-              ? String(fullContext.client.clientFid)
-              : undefined,
-          };
-          if (inMiniApp) {
-            try {
-              const { token } = await sdk.quickAuth.getToken();
-              trackingPayload.fc_token = token;
-            } catch {
-              /* token not available */
-            }
-          }
-          fetch("/api/track/open", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(trackingPayload),
-          }).catch(() => {});
-        } catch {
-          /* tracking should never block the app */
-        }
       } catch (error) {
         console.error("MiniApp SDK initialization error:", error);
-        // Still mark as ready even on error to prevent infinite loading
         setIsReady(true);
       }
     };
@@ -295,10 +280,49 @@ export const MiniappProvider = ({ children }: MiniappProviderProps) => {
     initialize();
   }, []);
 
+  useEffect(() => {
+    if (!isReady) return;
+    try {
+      const trackingPayload: Record<string, unknown> = {
+        platform,
+        page_url: typeof window !== "undefined" ? window.location.href : undefined,
+        fid: context.user?.fid,
+        username: context.user?.username,
+        wallet_address: address?.toLowerCase(),
+        client_fid: context.client?.clientFid ? String(context.client.clientFid) : undefined,
+      };
+      if (isMiniApp) {
+        (async () => {
+          try {
+            const { token } = await sdk.quickAuth.getToken();
+            trackingPayload.fc_token = token;
+          } catch {
+            /* token not available */
+          }
+          fetch("/api/track/open", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(trackingPayload),
+          }).catch(() => {});
+        })();
+      } else {
+        fetch("/api/track/open", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(trackingPayload),
+        }).catch(() => {});
+      }
+    } catch {
+      /* tracking should never block the app */
+    }
+  }, [isReady, platform, address]);
+
   const value = {
     context,
     isReady,
     isMiniApp,
+    platform,
+    walletAddress: address?.toLowerCase(),
     openLink,
     composeCast,
     openProfile,
