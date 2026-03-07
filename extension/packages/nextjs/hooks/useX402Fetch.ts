@@ -1,6 +1,8 @@
 import { useCallback, useMemo } from "react";
-import { ExactEvmScheme } from "@x402/evm";
+import { ExactEvmScheme, toClientEvmSigner } from "@x402/evm";
 import { wrapFetchWithPaymentFromConfig } from "@x402/fetch";
+import { createPublicClient, http } from "viem";
+import { base } from "viem/chains";
 import { useAccount, useWalletClient } from "wagmi";
 
 /**
@@ -34,13 +36,14 @@ export function useX402Fetch() {
     }
 
     try {
-      const account = {
-        ...walletClient,
-        address: address as `0x${string}`,
-      };
+      const publicClient = createPublicClient({ chain: base, transport: http() });
+      const signer = toClientEvmSigner(
+        { address, signTypedData: (args: Parameters<typeof walletClient.signTypedData>[0]) => walletClient.signTypedData(args) },
+        publicClient,
+      );
 
       const wrappedFetch = wrapFetchWithPaymentFromConfig(corsSafeFetch, {
-        schemes: [{ network: "eip155:8453", client: new ExactEvmScheme(account) }],
+        schemes: [{ network: "eip155:8453", client: new ExactEvmScheme(signer) }],
       });
 
       return { fetchWithPayment: wrappedFetch, isReady: true };
