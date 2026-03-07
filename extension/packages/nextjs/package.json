@@ -3,8 +3,9 @@
       "@farcaster/miniapp-sdk": "^0.2.3",
       "@farcaster/miniapp-wagmi-connector": "^1.1.1",
       "@farcaster/quick-auth": "^0.0.8",
-      "@x402/evm": "^2.2.0",
-      "@x402/fetch": "^2.2.0"
+      "@x402/evm": "^2.6.0",
+      "@x402/fetch": "^2.6.0",
+      "ethers": "^6.16.0"
     }
   }
   

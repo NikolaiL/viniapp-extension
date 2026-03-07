@@ -97,7 +97,7 @@ export function parseX402PaymentRequired(response: Response): X402PaymentRequire
  * Pricing: Dynamic (fetched from 402 response)
  */
 export const HOROSCOPE_SERVICE: X402ServiceConfig = {
-  endpoint: "https://gg402.vercel.app/horoscope",
+  endpoint: "https://www.apinow.fun/api/endpoints/gg402/horoscope",
   method: "POST",
   description: "Daily horoscope powered by x402",
 };

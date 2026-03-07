@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate the URL is an allowed x402 endpoint
-    const allowedHosts = ["gg402.vercel.app"];
+    const allowedHosts = ["www.apinowfun"];
     const url = new URL(targetUrl);
     if (!allowedHosts.some(host => url.hostname === host || url.hostname.endsWith(`.${host}`))) {
       return NextResponse.json({ error: "URL not allowed" }, { status: 403 });
