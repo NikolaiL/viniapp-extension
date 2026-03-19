@@ -35,7 +35,7 @@ NEXT_PUBLIC_SPLASH_BACKGROUND_COLOR="#212638"
 NEXT_PUBLIC_APP_PRIMARY_CATEGORY=developer-tools
 
 # hero image for listing in farcaster miniapp page abd base app miniapp directory
-NEXT_PUBLIC_APP_HERO_IMAGE=\${NEXT_PUBLIC_URL}/thumbnail_miniapp.jpg
+NEXT_PUBLIC_APP_HERO_IMAGE=\${NEXT_PUBLIC_URL}/cover.png
 
 NEXT_PUBLIC_APP_TAGLINE="Built with Scaffold ETH 2"
 
@@ -50,7 +50,7 @@ NEXT_PUBLIC_APP_OG_IMAGE=\${NEXT_PUBLIC_URL}/opengraph-image
 NEXT_PUBLIC_APP_TAGS="scaffoldeth, miniapp, farcaster, base, viniapp"
 
 # comma separated list of screenshot images with full domain
-NEXT_PUBLIC_APP_SCREENSHOTS="\${NEXT_PUBLIC_URL}/thumbnail_miniapp.jpg, \${NEXT_PUBLIC_URL}/thumbnail_miniapp.jpg"
+NEXT_PUBLIC_APP_SCREENSHOTS="\${NEXT_PUBLIC_URL}/cover.png, \${NEXT_PUBLIC_URL}/cover.png"
 NEXT_PUBLIC_AUTO_ADD_MINIAPP=true
 NEXT_PUBLIC_WEBHOOK_URL=https://viniapp.api.viniapp.xyz/api/miniapp_webhook
 

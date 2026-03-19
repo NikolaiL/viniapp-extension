@@ -117,6 +117,8 @@ interface MiniappContextType {
   openLink: (url: string) => Promise<void>;
   composeCast: (params: { text: string; embeds?: string[] }) => Promise<void>;
   openProfile: (params: { fid?: number; username?: string }) => Promise<void>;
+  viewToken: (tokenAddress: string, chain?: string) => Promise<void>;
+  swapToken: (params: { buyToken?: string; sellToken?: string; chain?: string }) => Promise<void>;
 }
 
 const MiniappContext = createContext<MiniappContextType | undefined>(undefined);
@@ -224,6 +226,57 @@ export const MiniappProvider = ({ children }: MiniappProviderProps) => {
     }
   };
 
+  /**
+   * View a token in the Farcaster client.
+   * Uses CAIP-19 format: eip155:{chainId}/erc20:{address}
+   * @param tokenAddress - The token contract address
+   * @param chain - Chain identifier (default: "8453" for Base)
+   */
+  const viewToken = async (tokenAddress: string, chain: string = "8453") => {
+    try {
+      const caip19 = `eip155:${chain}/erc20:${tokenAddress}`;
+      if (isMiniApp) {
+        await (sdk.actions as any).viewToken({ token: caip19 });
+        return;
+      }
+      // Fallback: open on basescan (or appropriate explorer)
+      const explorerUrl = chain === "8453"
+        ? `https://basescan.org/token/${tokenAddress}`
+        : `https://etherscan.io/token/${tokenAddress}`;
+      if (typeof window !== "undefined") window.open(explorerUrl, "_blank");
+    } catch (err) {
+      console.error("viewToken error", err);
+      if (typeof window !== "undefined") {
+        window.open(`https://basescan.org/token/${tokenAddress}`, "_blank");
+      }
+    }
+  };
+
+  /**
+   * Open the swap interface in the Farcaster client.
+   * @param params.buyToken - Token address to buy
+   * @param params.sellToken - Token address to sell
+   * @param params.chain - Chain identifier (default: "8453" for Base)
+   */
+  const swapToken = async ({ buyToken, sellToken, chain = "8453" }: { buyToken?: string; sellToken?: string; chain?: string }) => {
+    try {
+      const buildCaip19 = (addr: string) => `eip155:${chain}/erc20:${addr}`;
+      if (isMiniApp) {
+        const swapParams: Record<string, string> = {};
+        if (buyToken) swapParams.buyToken = buildCaip19(buyToken);
+        if (sellToken) swapParams.sellToken = buildCaip19(sellToken);
+        await (sdk.actions as any).swapToken(swapParams);
+        return;
+      }
+      // Fallback: open Uniswap
+      const tokenAddr = buyToken || sellToken || "";
+      const uniswapUrl = `https://app.uniswap.org/swap?chain=base&outputCurrency=${tokenAddr}`;
+      if (typeof window !== "undefined") window.open(uniswapUrl, "_blank");
+    } catch (err) {
+      console.error("swapToken error", err);
+    }
+  };
+
   useEffect(() => {
     const initialize = async () => {
       try {
@@ -326,6 +379,8 @@ export const MiniappProvider = ({ children }: MiniappProviderProps) => {
     openLink,
     composeCast,
     openProfile,
+    viewToken,
+    swapToken,
   };
 
   return <MiniappContext.Provider value={value}>{children}</MiniappContext.Provider>;

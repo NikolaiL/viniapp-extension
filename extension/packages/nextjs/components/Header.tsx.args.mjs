@@ -1,6 +1,1 @@
-export const extraMenuLinksObjects = [
-  {
-    label: "MiniApp Demo",
-    href: "/miniapp",
-  },
-];
+export const extraMenuLinksObjects = [];
