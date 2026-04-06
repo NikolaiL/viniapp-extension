@@ -54,6 +54,10 @@ NEXT_PUBLIC_APP_SCREENSHOTS="\${NEXT_PUBLIC_URL}/cover.png, \${NEXT_PUBLIC_URL}/
 NEXT_PUBLIC_AUTO_ADD_MINIAPP=true
 NEXT_PUBLIC_WEBHOOK_URL=https://viniapp.api.viniapp.xyz/api/miniapp_webhook
 
+# ViniApp Backend (required for notifications and analytics)
+VINIAPP_BACKEND=https://viniapp.api.viniapp.xyz
+# CDP_PROXY_KEY - set in Vercel env vars (do not commit real values)
+
 # Google Analytics / GTM (optional, set via Viniapp config)
 NEXT_PUBLIC_GA_ID=
 NEXT_PUBLIC_GTM_ID=
