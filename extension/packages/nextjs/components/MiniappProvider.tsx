@@ -240,9 +240,8 @@ export const MiniappProvider = ({ children }: MiniappProviderProps) => {
         return;
       }
       // Fallback: open on basescan (or appropriate explorer)
-      const explorerUrl = chain === "8453"
-        ? `https://basescan.org/token/${tokenAddress}`
-        : `https://etherscan.io/token/${tokenAddress}`;
+      const explorerUrl =
+        chain === "8453" ? `https://basescan.org/token/${tokenAddress}` : `https://etherscan.io/token/${tokenAddress}`;
       if (typeof window !== "undefined") window.open(explorerUrl, "_blank");
     } catch (err) {
       console.error("viewToken error", err);
@@ -258,7 +257,15 @@ export const MiniappProvider = ({ children }: MiniappProviderProps) => {
    * @param params.sellToken - Token address to sell
    * @param params.chain - Chain identifier (default: "8453" for Base)
    */
-  const swapToken = async ({ buyToken, sellToken, chain = "8453" }: { buyToken?: string; sellToken?: string; chain?: string }) => {
+  const swapToken = async ({
+    buyToken,
+    sellToken,
+    chain = "8453",
+  }: {
+    buyToken?: string;
+    sellToken?: string;
+    chain?: string;
+  }) => {
     try {
       const buildCaip19 = (addr: string) => `eip155:${chain}/erc20:${addr}`;
       if (isMiniApp) {

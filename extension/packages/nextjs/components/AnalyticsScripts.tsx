@@ -25,4 +25,3 @@ export const AnalyticsScripts = ({ children }: { children: React.ReactNode }) =>
     </>
   );
 };
-
