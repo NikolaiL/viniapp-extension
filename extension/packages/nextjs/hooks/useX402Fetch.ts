@@ -38,7 +38,10 @@ export function useX402Fetch() {
     try {
       const publicClient = createPublicClient({ chain: base, transport: http() });
       const signer = toClientEvmSigner(
-        { address, signTypedData: (args: Parameters<typeof walletClient.signTypedData>[0]) => walletClient.signTypedData(args) },
+        {
+          address: address as `0x${string}`,
+          signTypedData: (args: Parameters<typeof walletClient.signTypedData>[0]) => walletClient.signTypedData(args),
+        },
         publicClient,
       );
 
