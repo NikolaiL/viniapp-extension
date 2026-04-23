@@ -2,7 +2,8 @@
 
 import { createContext, useContext, useEffect, useState } from "react";
 import { sdk } from "@farcaster/miniapp-sdk";
-import { useAccount } from "wagmi";
+import { base } from "viem/chains";
+import { useAccount, useConnect, useReconnect, useSwitchChain } from "wagmi";
 
 /**
  * Full Farcaster SDK context types
@@ -151,7 +152,10 @@ export const MiniappProvider = ({ children }: MiniappProviderProps) => {
   const [isReady, setIsReady] = useState(false);
   const [isMiniApp, setIsMiniApp] = useState(false);
   const [platform, setPlatform] = useState<"farcaster" | "web">("web");
-  const { address } = useAccount();
+  const { address, isConnected, chainId } = useAccount();
+  const { connect, connectors } = useConnect();
+  const { switchChain } = useSwitchChain();
+  const { reconnect } = useReconnect();
 
   const composeCast = async ({ text, embeds = [] }: { text: string; embeds?: string[] }) => {
     try {
@@ -339,6 +343,48 @@ export const MiniappProvider = ({ children }: MiniappProviderProps) => {
 
     initialize();
   }, []);
+
+  // Auto-connect wallet when SDK is ready and we're in a Mini App
+  useEffect(() => {
+    const autoConnect = async () => {
+      if (!isReady || !isMiniApp) return;
+
+      try {
+        await reconnect();
+      } catch (e) {
+        console.log("Reconnect attempt:", e);
+      }
+
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      if (!isConnected) {
+        const miniAppConnector = connectors.find(
+          c => c.id === "farcasterMiniApp" || c.name?.toLowerCase().includes("farcaster"),
+        );
+
+        if (miniAppConnector) {
+          try {
+            connect({ connector: miniAppConnector, chainId: base.id });
+          } catch (e) {
+            console.error("Auto-connect error:", e);
+          }
+        }
+      }
+    };
+
+    autoConnect();
+  }, [isReady, isMiniApp, isConnected, connectors, connect, reconnect]);
+
+  // Switch to Base chain if connected but on wrong chain
+  useEffect(() => {
+    if (isConnected && chainId && chainId !== base.id && isMiniApp) {
+      try {
+        switchChain({ chainId: base.id });
+      } catch (e) {
+        console.error("Chain switch error:", e);
+      }
+    }
+  }, [isConnected, chainId, switchChain, isMiniApp]);
 
   useEffect(() => {
     if (!isReady) return;
