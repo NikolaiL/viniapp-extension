@@ -1,0 +1,5 @@
+{
+  "scripts": {
+    "postinstall": "husky install && yarn workspace @se-2/nextjs wire-builder-code"
+  }
+}
