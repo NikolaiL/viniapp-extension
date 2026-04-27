@@ -61,4 +61,10 @@ VINIAPP_BACKEND=https://viniapp.api.viniapp.xyz
 # Google Analytics / GTM (optional, set via Viniapp config)
 NEXT_PUBLIC_GA_ID=
 NEXT_PUBLIC_GTM_ID=
+
+# ERC-8021 builder-code attribution. Defaults to bc_41su3c2k if both are empty.
+# BUILDER_CODE is server-side and takes precedence (change without rebuild on Vercel).
+# NEXT_PUBLIC_BUILDER_CODE is the client fallback, baked into the bundle at build time.
+BUILDER_CODE=
+NEXT_PUBLIC_BUILDER_CODE=
 `;
