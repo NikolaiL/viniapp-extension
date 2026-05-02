@@ -7,8 +7,5 @@
       "@x402/fetch": "^2.10.0",
       "ethers": "^6.16.0",
       "ox": "^0.14.1"
-    },
-    "devDependencies": {
-      "vercel": "~53.1.0"
     }
   }
