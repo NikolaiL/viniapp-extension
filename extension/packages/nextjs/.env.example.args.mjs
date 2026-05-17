@@ -1,8 +1,8 @@
 export const additionalVars = `
 # essential miniapp related variables
-NEXT_PUBLIC_APP_NAME='Scaffold-ETH 2 MiniApp'
+NEXT_PUBLIC_APP_NAME=
 
-NEXT_PUBLIC_URL=https://\${VERCEL_PROJECT_PRODUCTION_URL}
+NEXT_PUBLIC_URL=
 
 # essential miniapp manifest related variables
 # you can get create them at https://farcaster.xyz/~/developers/mini-apps/manifest
@@ -14,49 +14,53 @@ FARCASTER_SIGNATURE=signature
 ### optional miniapp related variables
 
 # icon for miniapp listsing
-NEXT_PUBLIC_APP_ICON=\${NEXT_PUBLIC_URL}/favicon.png
+NEXT_PUBLIC_APP_ICON=
 
 # up to 30 characters, no special characters
-NEXT_PUBLIC_APP_SUBTITLE="Built with Scaffold ETH 2"
+NEXT_PUBLIC_APP_SUBTITLE=
 
 # TODO::: add all value description
 
 # Must not contain emojis or special characters
-NEXT_PUBLIC_APP_DESCRIPTION="Built with Scaffold-ETH 2 with MiniApp Extension"
+NEXT_PUBLIC_APP_DESCRIPTION=
 
 # square image
-NEXT_PUBLIC_APP_SPLASH_IMAGE=\${NEXT_PUBLIC_URL}/favicon.png
+NEXT_PUBLIC_APP_SPLASH_IMAGE=
 
-NEXT_PUBLIC_SPLASH_BACKGROUND_COLOR="#212638"
+NEXT_PUBLIC_SPLASH_BACKGROUND_COLOR=
 
 # possible values:
 # One of: games, social, finance, utility, productivity, health-fitness, news-media, 
 # music, shopping, education, developer-tools, entertainment, art-creativity
-NEXT_PUBLIC_APP_PRIMARY_CATEGORY=developer-tools
+NEXT_PUBLIC_APP_PRIMARY_CATEGORY=
 
 # hero image for listing in farcaster miniapp page abd base app miniapp directory
-NEXT_PUBLIC_APP_HERO_IMAGE=\${NEXT_PUBLIC_URL}/cover.png
+NEXT_PUBLIC_APP_HERO_IMAGE=
 
-NEXT_PUBLIC_APP_TAGLINE="Built with Scaffold ETH 2"
+NEXT_PUBLIC_APP_TAGLINE=
 
 # og values for twitter, facebook sharing
-NEXT_PUBLIC_APP_OG_TITLE="Scaffold-ETH 2 with MiniApp"
-NEXT_PUBLIC_APP_OG_DESCRIPTION="Built with Scaffold-ETH 2 with MiniApp Extension"
-NEXT_PUBLIC_APP_OG_IMAGE=\${NEXT_PUBLIC_URL}/opengraph-image
+NEXT_PUBLIC_APP_OG_TITLE=
+NEXT_PUBLIC_APP_OG_DESCRIPTION=
+NEXT_PUBLIC_APP_OG_IMAGE=
 
 # Descriptive tags for filtering/search. 
 # Comma-separated list of up to 5 tags
 # Each tag is: max 20 characters, lowercase, no spaces, no special characters, no emojis.
-NEXT_PUBLIC_APP_TAGS="scaffoldeth, miniapp, farcaster, base, viniapp"
+NEXT_PUBLIC_APP_TAGS=
 
 # comma separated list of screenshot images with full domain
-NEXT_PUBLIC_APP_SCREENSHOTS="\${NEXT_PUBLIC_URL}/cover.png, \${NEXT_PUBLIC_URL}/cover.png"
-NEXT_PUBLIC_AUTO_ADD_MINIAPP=true
-NEXT_PUBLIC_WEBHOOK_URL=https://viniapp.api.viniapp.xyz/api/miniapp_webhook
+NEXT_PUBLIC_APP_SCREENSHOTS=
+NEXT_PUBLIC_AUTO_ADD_MINIAPP=
+NEXT_PUBLIC_WEBHOOK_URL=
 
 # ViniApp Backend (required for notifications and analytics)
-VINIAPP_BACKEND=https://viniapp.api.viniapp.xyz
+VINIAPP_BACKEND=
 # CDP_PROXY_KEY - set in Vercel env vars (do not commit real values)
+
+# Cross-platform payment token addresses. Fill only when the app uses payments.
+NEXT_PUBLIC_CELO_USDC_ADDRESS=
+NEXT_PUBLIC_WORLD_WLD_ADDRESS=
 
 # Google Analytics / GTM (optional, set via Viniapp config)
 NEXT_PUBLIC_GA_ID=

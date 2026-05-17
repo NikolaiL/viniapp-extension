@@ -4,6 +4,13 @@ import { createContext, useContext, useEffect, useState } from "react";
 import { sdk } from "@farcaster/miniapp-sdk";
 import { base } from "viem/chains";
 import { useAccount, useConnect, useReconnect, useSwitchChain } from "wagmi";
+import {
+  detectViniPlatform,
+  openXShare,
+  shouldShowAppNativeTokenLinks,
+  targetChainForPlatform,
+  type ViniPlatform,
+} from "~~/services/platform";
 
 /**
  * Full Farcaster SDK context types
@@ -113,7 +120,9 @@ interface MiniappContextType {
   context: FullMiniAppContext;
   isReady: boolean;
   isMiniApp: boolean;
-  platform: "farcaster" | "web";
+  isMiniPay: boolean;
+  isWorldApp: boolean;
+  platform: ViniPlatform;
   walletAddress: string | undefined;
   openLink: (url: string) => Promise<void>;
   composeCast: (params: { text: string; embeds?: string[] }) => Promise<void>;
@@ -151,7 +160,7 @@ export const MiniappProvider = ({ children }: MiniappProviderProps) => {
   const [context, setContext] = useState<FullMiniAppContext>({ user: null });
   const [isReady, setIsReady] = useState(false);
   const [isMiniApp, setIsMiniApp] = useState(false);
-  const [platform, setPlatform] = useState<"farcaster" | "web">("web");
+  const [platform, setPlatform] = useState<ViniPlatform>("web");
   const { address, isConnected, chainId } = useAccount();
   const { connect, connectors } = useConnect();
   const { switchChain } = useSwitchChain();
@@ -159,6 +168,11 @@ export const MiniappProvider = ({ children }: MiniappProviderProps) => {
 
   const composeCast = async ({ text, embeds = [] }: { text: string; embeds?: string[] }) => {
     try {
+      if (platform === "minipay" || platform === "worldapp") {
+        openXShare({ text, url: embeds[0] || process.env.NEXT_PUBLIC_URL });
+        return;
+      }
+
       if (isMiniApp) {
         const trimmed = embeds.filter(Boolean).slice(0, 2);
         const embedsTuple = ((): [] | [string] | [string, string] => {
@@ -238,6 +252,8 @@ export const MiniappProvider = ({ children }: MiniappProviderProps) => {
    */
   const viewToken = async (tokenAddress: string, chain: string = "8453") => {
     try {
+      if (!shouldShowAppNativeTokenLinks(platform)) return;
+
       const caip19 = `eip155:${chain}/erc20:${tokenAddress}`;
       if (isMiniApp) {
         await (sdk.actions as any).viewToken({ token: caip19 });
@@ -271,6 +287,16 @@ export const MiniappProvider = ({ children }: MiniappProviderProps) => {
     chain?: string;
   }) => {
     try {
+      if (platform === "minipay") {
+        if (typeof window !== "undefined") window.open("https://minipay.opera.com/add_cash", "_blank");
+        return;
+      }
+
+      if (platform === "worldapp") {
+        console.warn("Use the app's World App WLD payment flow instead of a generic app-token swap.");
+        return;
+      }
+
       const buildCaip19 = (addr: string) => `eip155:${chain}/erc20:${addr}`;
       if (isMiniApp) {
         const swapParams: Record<string, string> = {};
@@ -301,9 +327,11 @@ export const MiniappProvider = ({ children }: MiniappProviderProps) => {
           inMiniApp = false;
         }
 
+        const detectedPlatform = detectViniPlatform(inMiniApp);
+
         if (!inMiniApp) {
           setIsMiniApp(false);
-          setPlatform("web");
+          setPlatform(detectedPlatform);
           setIsReady(true);
           return;
         }
@@ -323,7 +351,7 @@ export const MiniappProvider = ({ children }: MiniappProviderProps) => {
 
         setContext(fullContext);
         setIsMiniApp(true);
-        setPlatform("farcaster");
+        setPlatform(detectViniPlatform(true));
         setIsReady(true);
 
         const added = fullContext.client?.added ?? false;
@@ -344,10 +372,10 @@ export const MiniappProvider = ({ children }: MiniappProviderProps) => {
     initialize();
   }, []);
 
-  // Auto-connect wallet when SDK is ready and we're in a Mini App
+  // Auto-connect embedded wallets when the host exposes one.
   useEffect(() => {
     const autoConnect = async () => {
-      if (!isReady || !isMiniApp) return;
+      if (!isReady || platform === "web") return;
 
       try {
         await reconnect();
@@ -358,13 +386,16 @@ export const MiniappProvider = ({ children }: MiniappProviderProps) => {
       await new Promise(resolve => setTimeout(resolve, 100));
 
       if (!isConnected) {
-        const miniAppConnector = connectors.find(
-          c => c.id === "farcasterMiniApp" || c.name?.toLowerCase().includes("farcaster"),
-        );
+        const targetChainId = targetChainForPlatform(platform);
+        const connector =
+          platform === "farcaster"
+            ? connectors.find(c => c.id === "farcasterMiniApp" || c.name?.toLowerCase().includes("farcaster"))
+            : connectors.find(c => c.id === "injected" || c.name?.toLowerCase().includes("injected")) ||
+              connectors[0];
 
-        if (miniAppConnector) {
+        if (connector) {
           try {
-            connect({ connector: miniAppConnector, chainId: base.id });
+            connect({ connector, chainId: targetChainId || base.id });
           } catch (e) {
             console.error("Auto-connect error:", e);
           }
@@ -373,18 +404,19 @@ export const MiniappProvider = ({ children }: MiniappProviderProps) => {
     };
 
     autoConnect();
-  }, [isReady, isMiniApp, isConnected, connectors, connect, reconnect]);
+  }, [isReady, platform, isConnected, connectors, connect, reconnect]);
 
-  // Switch to Base chain if connected but on wrong chain
+  // Switch embedded wallets to the platform's default chain when possible.
   useEffect(() => {
-    if (isConnected && chainId && chainId !== base.id && isMiniApp) {
+    const targetChainId = targetChainForPlatform(platform);
+    if (isConnected && chainId && targetChainId && chainId !== targetChainId && platform !== "web") {
       try {
-        switchChain({ chainId: base.id });
+        switchChain({ chainId: targetChainId });
       } catch (e) {
         console.error("Chain switch error:", e);
       }
     }
-  }, [isConnected, chainId, switchChain, isMiniApp]);
+  }, [isConnected, chainId, switchChain, platform]);
 
   useEffect(() => {
     if (!isReady) return;
@@ -427,6 +459,8 @@ export const MiniappProvider = ({ children }: MiniappProviderProps) => {
     context,
     isReady,
     isMiniApp,
+    isMiniPay: platform === "minipay",
+    isWorldApp: platform === "worldapp",
     platform,
     walletAddress: address?.toLowerCase(),
     openLink,
