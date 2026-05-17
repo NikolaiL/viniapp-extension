@@ -26,7 +26,7 @@ const Home: NextPage = () => {
           {process.env.NEXT_PUBLIC_APP_NAME || "ViniApp"}
         </h1>
         <p className="text-base-content/70 mb-8">
-          {process.env.NEXT_PUBLIC_APP_TAGLINE || "Built with Scaffold-ETH 2 + MiniApp Extension"}
+          {process.env.NEXT_PUBLIC_APP_TAGLINE || "A cross-platform onchain app"}
         </p>
 
         <div className="card bg-base-200 rounded-xl p-6">

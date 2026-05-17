@@ -168,6 +168,9 @@ export const MiniappProvider = ({ children }: MiniappProviderProps) => {
 
   const composeCast = async ({ text, embeds = [] }: { text: string; embeds?: string[] }) => {
     try {
+      const farcasterAttribution = "@viniapp";
+      const castText = text.includes(farcasterAttribution) ? text : `${text}\n\ncreated with ${farcasterAttribution}`;
+
       if (platform === "minipay" || platform === "worldapp") {
         openXShare({ text, url: embeds[0] || process.env.NEXT_PUBLIC_URL });
         return;
@@ -180,13 +183,13 @@ export const MiniappProvider = ({ children }: MiniappProviderProps) => {
           if (trimmed.length === 1) return [trimmed[0]] as [string];
           return [] as [];
         })();
-        console.log("composeCast processing", text, embedsTuple);
-        await sdk.actions.composeCast({ text, embeds: embedsTuple });
+        console.log("composeCast processing", castText, embedsTuple);
+        await sdk.actions.composeCast({ text: castText, embeds: embedsTuple });
 
         return;
       }
       const url = new URL("https://farcaster.xyz/~/compose");
-      url.searchParams.set("text", text);
+      url.searchParams.set("text", castText);
       for (const e of embeds) url.searchParams.append("embeds[]", e);
       if (typeof window !== "undefined") window.open(url.toString(), "_blank");
     } catch (err) {
@@ -390,8 +393,7 @@ export const MiniappProvider = ({ children }: MiniappProviderProps) => {
         const connector =
           platform === "farcaster"
             ? connectors.find(c => c.id === "farcasterMiniApp" || c.name?.toLowerCase().includes("farcaster"))
-            : connectors.find(c => c.id === "injected" || c.name?.toLowerCase().includes("injected")) ||
-              connectors[0];
+            : connectors.find(c => c.id === "injected" || c.name?.toLowerCase().includes("injected")) || connectors[0];
 
         if (connector) {
           try {

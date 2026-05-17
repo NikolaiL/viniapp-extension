@@ -1,4 +1,4 @@
 export const metadataOverrides = {
-    title: process.env.NEXT_PUBLIC_APP_NAME || "Scaffold-ETH 2 MiniApp",
-    description: process.env.NEXT_PUBLIC_APP_DESCRIPTION || "Built with 🏗 Scaffold-ETH 2 and MiniApp Extension"
-}
+  title: process.env.NEXT_PUBLIC_APP_NAME || "ViniApp",
+  description: process.env.NEXT_PUBLIC_APP_DESCRIPTION || "A cross-platform onchain app",
+};

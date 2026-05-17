@@ -12,3 +12,5 @@ export const configOverrides = {
   targetNetworks: ["$$chains.base$$", "$$chains.celo$$", "$$worldChain$$"],
   alchemyApiKey: "$$process.env.NEXT_PUBLIC_ALCHEMY_API_KEY || ''$$",
 };
+
+export const skipLocalChainInTargetNetworks = true;
