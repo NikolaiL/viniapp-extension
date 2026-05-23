@@ -455,7 +455,15 @@ export const MiniappProvider = ({ children }: MiniappProviderProps) => {
     } catch {
       /* tracking should never block the app */
     }
-  }, [isReady, platform, address]);
+  }, [
+    isReady,
+    platform,
+    address,
+    isMiniApp,
+    context.user?.fid,
+    context.user?.username,
+    context.client?.clientFid,
+  ]);
 
   const value = {
     context,
