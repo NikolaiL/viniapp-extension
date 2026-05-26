@@ -53,6 +53,15 @@ function clamp(value: string | undefined, max: number) {
   return trimmed.length > max ? trimmed.slice(0, max).trim() : trimmed;
 }
 
+function manifestText(value: string | undefined, max: number) {
+  const normalized = value
+    ?.replace(/[@#$%^&*+=\/\\|~«»]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  return clamp(normalized, max);
+}
+
 function csv(input: string | undefined): string[] {
   return (input || "")
     .split(",")
@@ -98,8 +107,8 @@ export async function GET() {
   const frame = withValidProperties({
     version: "1",
     name: appName,
-    subtitle: clamp(process.env.NEXT_PUBLIC_APP_SUBTITLE, 30),
-    description: clamp(process.env.NEXT_PUBLIC_APP_DESCRIPTION, 170),
+    subtitle: manifestText(process.env.NEXT_PUBLIC_APP_SUBTITLE, 30),
+    description: manifestText(process.env.NEXT_PUBLIC_APP_DESCRIPTION, 170),
     iconUrl: absoluteUrl(process.env.NEXT_PUBLIC_APP_ICON || "/icon.png", baseUrl),
     splashImageUrl: absoluteUrl(process.env.NEXT_PUBLIC_APP_SPLASH_IMAGE || "/splash.png", baseUrl),
     splashBackgroundColor: process.env.NEXT_PUBLIC_SPLASH_BACKGROUND_COLOR,
@@ -109,9 +118,9 @@ export async function GET() {
     primaryCategory: category(process.env.NEXT_PUBLIC_APP_PRIMARY_CATEGORY),
     tags: manifestTags(process.env.NEXT_PUBLIC_APP_TAGS),
     heroImageUrl: absoluteUrl(process.env.NEXT_PUBLIC_APP_HERO_IMAGE, baseUrl),
-    tagline: clamp(process.env.NEXT_PUBLIC_APP_TAGLINE, 30),
-    ogTitle: clamp(process.env.NEXT_PUBLIC_APP_OG_TITLE, 32),
-    ogDescription: clamp(process.env.NEXT_PUBLIC_APP_OG_DESCRIPTION, 170),
+    tagline: manifestText(process.env.NEXT_PUBLIC_APP_TAGLINE, 30),
+    ogTitle: manifestText(process.env.NEXT_PUBLIC_APP_OG_TITLE, 30),
+    ogDescription: manifestText(process.env.NEXT_PUBLIC_APP_OG_DESCRIPTION, 100),
     ogImageUrl: absoluteUrl(process.env.NEXT_PUBLIC_APP_OG_IMAGE, baseUrl),
   });
 
