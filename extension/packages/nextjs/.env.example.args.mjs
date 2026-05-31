@@ -56,7 +56,9 @@ NEXT_PUBLIC_WEBHOOK_URL=
 
 # ViniApp Backend (required for notifications and analytics)
 VINIAPP_BACKEND=
-# CDP_PROXY_KEY - set in Vercel env vars (do not commit real values)
+# CDP_PROXY_KEY - SERVER-ONLY secret. Set in Vercel env vars (do not commit real
+# values). Never prefix with NEXT_PUBLIC_ and never read it in client components;
+# it must only be used from API routes / server code.
 
 # Cross-platform payment token addresses. Fill only when the app uses payments.
 NEXT_PUBLIC_CELO_USDC_ADDRESS=
