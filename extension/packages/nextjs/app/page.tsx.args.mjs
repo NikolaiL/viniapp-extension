@@ -10,6 +10,11 @@ import { useMiniapp } from "~~/components/MiniappProvider";
 const Home: NextPage = () => {
   const { context, isMiniApp, isReady } = useMiniapp();
   const user = context.user;
+  const environmentLabel = !isReady
+    ? "Detecting environment"
+    : isMiniApp
+      ? "Running inside Farcaster"
+      : "Running in browser";
 
   return (
     <div className="flex flex-col items-center w-full px-4 py-8 pb-24">
@@ -31,7 +36,7 @@ const Home: NextPage = () => {
 
         <div className="card bg-base-200 rounded-xl p-6">
           <p className="text-sm text-base-content/60">
-            {isMiniApp ? "Running inside Farcaster" : "Running in browser"}
+            {environmentLabel}
           </p>
         </div>
       </div>

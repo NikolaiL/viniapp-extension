@@ -339,8 +339,9 @@ export const MiniappProvider = ({ children }: MiniappProviderProps) => {
           return;
         }
 
-        await sdk.actions.ready();
-
+        const readyPromise = sdk.actions.ready().catch(error => {
+          console.error("MiniApp SDK ready() error:", error);
+        });
         const sdkContext = await sdk.context;
 
         const fullContext: FullMiniAppContext = {
@@ -356,6 +357,7 @@ export const MiniappProvider = ({ children }: MiniappProviderProps) => {
         setIsMiniApp(true);
         setPlatform(detectViniPlatform(true));
         setIsReady(true);
+        await readyPromise;
 
         const added = fullContext.client?.added ?? false;
         const autoAdd = process.env.NEXT_PUBLIC_AUTO_ADD_MINIAPP !== "false";
