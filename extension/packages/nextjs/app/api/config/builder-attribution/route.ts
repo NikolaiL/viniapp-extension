@@ -12,8 +12,7 @@ const DEFAULT_BUILDER_CODE = "bc_41su3c2k";
  * Falls back to the platform default so transactions are always attributed.
  */
 export async function GET() {
-  const code =
-    process.env.BUILDER_CODE?.trim() || process.env.NEXT_PUBLIC_BUILDER_CODE?.trim() || DEFAULT_BUILDER_CODE;
+  const code = process.env.BUILDER_CODE?.trim() || process.env.NEXT_PUBLIC_BUILDER_CODE?.trim() || DEFAULT_BUILDER_CODE;
 
   const dataSuffix = Attribution.toDataSuffix({ codes: [code] });
 

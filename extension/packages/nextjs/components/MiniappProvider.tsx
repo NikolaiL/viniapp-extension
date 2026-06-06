@@ -5,11 +5,11 @@ import { sdk } from "@farcaster/miniapp-sdk";
 import { base } from "viem/chains";
 import { useAccount, useConnect, useReconnect, useSwitchChain } from "wagmi";
 import {
+  type ViniPlatform,
   detectViniPlatform,
   openXShare,
   shouldShowAppNativeTokenLinks,
   targetChainForPlatform,
-  type ViniPlatform,
 } from "~~/services/platform";
 
 /**
@@ -457,15 +457,7 @@ export const MiniappProvider = ({ children }: MiniappProviderProps) => {
     } catch {
       /* tracking should never block the app */
     }
-  }, [
-    isReady,
-    platform,
-    address,
-    isMiniApp,
-    context.user?.fid,
-    context.user?.username,
-    context.client?.clientFid,
-  ]);
+  }, [isReady, platform, address, isMiniApp, context.user?.fid, context.user?.username, context.client?.clientFid]);
 
   const value = {
     context,

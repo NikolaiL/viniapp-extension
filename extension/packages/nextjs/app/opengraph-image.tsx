@@ -56,59 +56,57 @@ export default async function Image() {
     }
 
     return new ImageResponse(
-      (
+      <div
+        style={{
+          height: "100%",
+          width: "100%",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: bgColor,
+          fontFamily: fonts ? "Inter, sans-serif" : "system-ui, sans-serif",
+        }}
+      >
         <div
           style={{
-            height: "100%",
-            width: "100%",
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "center",
-            backgroundColor: bgColor,
-            fontFamily: fonts ? "Inter, sans-serif" : "system-ui, sans-serif",
+            fontSize: "72px",
+            fontWeight: "700",
+            color: "#ffffff",
+            textAlign: "center",
+            lineHeight: "1.2",
+            maxWidth: "900px",
+            padding: "0 40px",
           }}
         >
-          <div
-            style={{
-              fontSize: "72px",
-              fontWeight: "700",
-              color: "#ffffff",
-              textAlign: "center",
-              lineHeight: "1.2",
-              maxWidth: "900px",
-              padding: "0 40px",
-            }}
-          >
-            {appName}
-          </div>
-          {tagline && (
-            <div
-              style={{
-                fontSize: "32px",
-                fontWeight: "400",
-                color: "rgba(255, 255, 255, 0.6)",
-                marginTop: "24px",
-                textAlign: "center",
-                maxWidth: "800px",
-                fontFamily: fonts ? "InterLight, sans-serif" : "system-ui, sans-serif",
-              }}
-            >
-              {tagline}
-            </div>
-          )}
-          <div
-            style={{
-              position: "absolute",
-              bottom: "40px",
-              fontSize: "24px",
-              color: "rgba(255, 255, 255, 0.3)",
-            }}
-          >
-            Built on @viniapp
-          </div>
+          {appName}
         </div>
-      ),
+        {tagline && (
+          <div
+            style={{
+              fontSize: "32px",
+              fontWeight: "400",
+              color: "rgba(255, 255, 255, 0.6)",
+              marginTop: "24px",
+              textAlign: "center",
+              maxWidth: "800px",
+              fontFamily: fonts ? "InterLight, sans-serif" : "system-ui, sans-serif",
+            }}
+          >
+            {tagline}
+          </div>
+        )}
+        <div
+          style={{
+            position: "absolute",
+            bottom: "40px",
+            fontSize: "24px",
+            color: "rgba(255, 255, 255, 0.3)",
+          }}
+        >
+          Built on @viniapp
+        </div>
+      </div>,
       {
         ...size,
         ...(fonts ? { fonts } : {}),

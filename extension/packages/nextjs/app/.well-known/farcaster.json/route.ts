@@ -71,7 +71,13 @@ function csv(input: string | undefined): string[] {
 
 function manifestTags(input: string | undefined) {
   return csv(input)
-    .map(tag => tag.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "").slice(0, 20))
+    .map(tag =>
+      tag
+        .toLowerCase()
+        .replace(/\s+/g, "-")
+        .replace(/[^a-z0-9-]/g, "")
+        .slice(0, 20),
+    )
     .filter(Boolean)
     .slice(0, 5);
 }
