@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { sdk } from "@farcaster/miniapp-sdk";
 import { base } from "viem/chains";
 import { useAccount, useConnect, useReconnect, useSwitchChain } from "wagmi";
@@ -165,6 +165,8 @@ export const MiniappProvider = ({ children }: MiniappProviderProps) => {
   const { connect, connectors } = useConnect();
   const { switchChain } = useSwitchChain();
   const { reconnect } = useReconnect();
+  // One-shot guard so the open/track event fires exactly once per mount.
+  const trackingFired = useRef(false);
 
   const composeCast = async ({ text, embeds = [] }: { text: string; embeds?: string[] }) => {
     try {
@@ -422,9 +424,19 @@ export const MiniappProvider = ({ children }: MiniappProviderProps) => {
     }
   }, [isConnected, chainId, switchChain, platform]);
 
+  // Fire the open/track event exactly once, and only after user identity has
+  // resolved. The wallet auto-connect (and Farcaster wallet attach) lands a beat
+  // AFTER `isReady`, so firing on `isReady` alone would record a premature
+  // anonymous open and then a duplicate once the address arrives. Instead we
+  // wait for a wallet address (the universal identifier) and fall back to a
+  // single anonymous event only once a grace window confirms no wallet is
+  // connecting — so logged-out web visitors are still counted exactly once.
   useEffect(() => {
-    if (!isReady) return;
-    try {
+    if (!isReady || trackingFired.current) return;
+
+    const fire = () => {
+      if (trackingFired.current) return;
+      trackingFired.current = true;
       const trackingPayload: Record<string, unknown> = {
         platform,
         page_url: typeof window !== "undefined" ? window.location.href : undefined,
@@ -433,30 +445,35 @@ export const MiniappProvider = ({ children }: MiniappProviderProps) => {
         wallet_address: address?.toLowerCase(),
         client_fid: context.client?.clientFid ? String(context.client.clientFid) : undefined,
       };
-      if (isMiniApp) {
-        (async () => {
-          try {
-            const { token } = await sdk.quickAuth.getToken();
-            trackingPayload.fc_token = token;
-          } catch {
-            /* token not available */
-          }
-          fetch("/api/track/open", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(trackingPayload),
-          }).catch(() => {});
-        })();
-      } else {
+      const send = (extra?: Record<string, unknown>) =>
         fetch("/api/track/open", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(trackingPayload),
+          body: JSON.stringify(extra ? { ...trackingPayload, ...extra } : trackingPayload),
         }).catch(() => {});
+      if (isMiniApp) {
+        sdk.quickAuth
+          .getToken()
+          .then(({ token }) => send({ fc_token: token }))
+          .catch(() => send());
+      } else {
+        send();
       }
-    } catch {
-      /* tracking should never block the app */
+    };
+
+    // Wallet present → fire now with full identity. This also re-runs (and fires)
+    // the moment auto-connect delivers the address.
+    if (address) {
+      fire();
+      return;
     }
+
+    // No wallet yet. Wallet platforms auto-connect, so wait longer for the
+    // address; plain web has no auto-connect, so a short window is enough before
+    // recording a single anonymous (or fid-only) open event.
+    const grace = platform === "web" ? 1500 : 4000;
+    const timer = setTimeout(fire, grace);
+    return () => clearTimeout(timer);
   }, [isReady, platform, address, isMiniApp, context.user?.fid, context.user?.username, context.client?.clientFid]);
 
   const value = {
