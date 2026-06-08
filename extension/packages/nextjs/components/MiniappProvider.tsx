@@ -167,6 +167,9 @@ export const MiniappProvider = ({ children }: MiniappProviderProps) => {
   const { reconnect } = useReconnect();
   // One-shot guard so the open/track event fires exactly once per mount.
   const trackingFired = useRef(false);
+  // One-shot guard so wallet auto-connect runs once per mount and does not
+  // re-fire on every wagmi connectors/isConnected change (first-load flicker).
+  const autoConnectAttempted = useRef(false);
 
   const composeCast = async ({ text, embeds = [] }: { text: string; embeds?: string[] }) => {
     try {
@@ -379,11 +382,14 @@ export const MiniappProvider = ({ children }: MiniappProviderProps) => {
     initialize();
   }, []);
 
-  // Auto-connect embedded wallets when the host exposes one.
+  // Auto-connect embedded wallets when the host exposes one (Farcaster mini-app,
+  // Base App / Coinbase / MiniPay / World App in-app browsers). Runs once per
+  // mount — guarding the unstable wagmi deps prevents first-load flicker.
   useEffect(() => {
-    const autoConnect = async () => {
-      if (!isReady || platform === "web") return;
+    if (!isReady || platform === "web" || autoConnectAttempted.current) return;
+    autoConnectAttempted.current = true;
 
+    const autoConnect = async () => {
       try {
         await reconnect();
       } catch (e) {
@@ -394,6 +400,8 @@ export const MiniappProvider = ({ children }: MiniappProviderProps) => {
 
       if (!isConnected) {
         const targetChainId = targetChainForPlatform(platform);
+        // Farcaster mini-apps use the frame connector; every other host
+        // (Base App, MiniPay, World App) exposes a standard injected provider.
         const connector =
           platform === "farcaster"
             ? connectors.find(c => c.id === "farcasterMiniApp" || c.name?.toLowerCase().includes("farcaster"))
@@ -410,7 +418,9 @@ export const MiniappProvider = ({ children }: MiniappProviderProps) => {
     };
 
     autoConnect();
-  }, [isReady, platform, isConnected, connectors, connect, reconnect]);
+    // One-shot via ref; reads latest connectors/isConnected at call time.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isReady, platform]);
 
   // Switch embedded wallets to the platform's default chain when possible.
   useEffect(() => {
