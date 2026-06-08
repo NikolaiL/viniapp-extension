@@ -42,10 +42,14 @@ export const detectViniPlatform = (isFarcasterMiniApp = false): ViniPlatform => 
 
   if (w.WorldApp || w.MiniKit) return "worldapp";
   if (w.ethereum?.isMiniPay || /MiniPay|Opera Mini/i.test(navigator.userAgent)) return "minipay";
-  // Genuine Farcaster host (Warpcast etc.) takes precedence; the Base App is no
-  // longer a Farcaster mini-app host, so it falls through to the provider check.
-  if (isFarcasterMiniApp) return "farcaster";
+  // Base App check MUST come before the Farcaster check. The Base App is a
+  // mini-app host, so `sdk.isInMiniApp()` returns true there too — but it is a
+  // Base App, not a Farcaster client. Its injected Coinbase provider
+  // (`isCoinbaseBrowser`/`isCoinbaseWallet`) is a precise signal that Warpcast and
+  // other genuine Farcaster clients never set, so detecting it first keeps Base
+  // App opens out of the "farcaster" bucket.
   if (isBaseAppRuntime()) return "base";
+  if (isFarcasterMiniApp) return "farcaster";
 
   return "web";
 };
