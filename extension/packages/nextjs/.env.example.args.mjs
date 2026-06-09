@@ -60,6 +60,12 @@ VINIAPP_BACKEND=
 # values). Never prefix with NEXT_PUBLIC_ and never read it in client components;
 # it must only be used from API routes / server code.
 
+# World App (MiniKit). Required to connect the wallet inside World App; create an
+# app id at https://developer.worldcoin.org. Leave empty if you don't target World
+# App — MiniKit only installs and the worldApp connector only registers when actually
+# running inside World App, so an empty value is harmless on every other platform.
+NEXT_PUBLIC_WORLD_APP_ID=
+
 # Cross-platform payment token addresses. Fill only when the app uses payments.
 NEXT_PUBLIC_CELO_USDC_ADDRESS=
 NEXT_PUBLIC_WORLD_WLD_ADDRESS=

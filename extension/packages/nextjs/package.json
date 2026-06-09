@@ -3,6 +3,7 @@
       "@farcaster/miniapp-sdk": "^0.3.0",
       "@farcaster/miniapp-wagmi-connector": "^2.0.0",
       "@farcaster/quick-auth": "^0.0.8",
+      "@worldcoin/minikit-js": "^2.0.3",
       "@x402/evm": "^2.10.0",
       "@x402/fetch": "^2.10.0",
       "ethers": "^6.16.0",

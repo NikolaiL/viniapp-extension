@@ -416,12 +416,19 @@ export const MiniappProvider = ({ children }: MiniappProviderProps) => {
       // (Farcaster, MiniPay, World App) keep the explicit-connect fallback.
       if (!isConnected && platform !== "base") {
         const targetChainId = targetChainForPlatform(platform);
-        // Farcaster mini-apps use the frame connector; every other host
-        // (MiniPay, World App) exposes a standard injected provider.
-        const connector =
-          platform === "farcaster"
-            ? connectors.find(c => c.id === "farcasterMiniApp" || c.name?.toLowerCase().includes("farcaster"))
-            : connectors.find(c => c.id === "injected" || c.name?.toLowerCase().includes("injected")) || connectors[0];
+        // Farcaster mini-apps use the frame connector; World App uses the
+        // MiniKit-backed worldApp connector; MiniPay (and any other injected host)
+        // uses the standard injected provider.
+        let connector;
+        if (platform === "farcaster") {
+          connector = connectors.find(c => c.id === "farcasterMiniApp" || c.name?.toLowerCase().includes("farcaster"));
+        } else if (platform === "worldapp") {
+          connector =
+            connectors.find(c => c.id === "worldApp" || c.name?.toLowerCase().includes("world")) ||
+            connectors.find(c => c.id === "injected" || c.name?.toLowerCase().includes("injected"));
+        } else {
+          connector = connectors.find(c => c.id === "injected" || c.name?.toLowerCase().includes("injected")) || connectors[0];
+        }
 
         if (connector) {
           try {
