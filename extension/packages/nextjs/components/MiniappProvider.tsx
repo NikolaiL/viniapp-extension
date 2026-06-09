@@ -325,6 +325,20 @@ export const MiniappProvider = ({ children }: MiniappProviderProps) => {
   useEffect(() => {
     const initialize = async () => {
       try {
+        // Provider-first: detect injected-provider hosts (Base App, MiniPay, World
+        // App) synchronously from window signals — no Farcaster SDK needed. The Base
+        // App has no FC SDK, so awaiting sdk.isInMiniApp()/sdk.context there would
+        // stall; resolve those hosts immediately so platform + isReady are never
+        // blocked by a hanging SDK call.
+        const providerPlatform = detectViniPlatform(false);
+        if (providerPlatform !== "web") {
+          setIsMiniApp(false);
+          setPlatform(providerPlatform);
+          setIsReady(true);
+          return;
+        }
+
+        // No injected-provider signal: a genuine Farcaster mini app or plain web.
         let inMiniApp = false;
         try {
           inMiniApp = await Promise.race([
@@ -335,11 +349,9 @@ export const MiniappProvider = ({ children }: MiniappProviderProps) => {
           inMiniApp = false;
         }
 
-        const detectedPlatform = detectViniPlatform(inMiniApp);
-
         if (!inMiniApp) {
           setIsMiniApp(false);
-          setPlatform(detectedPlatform);
+          setPlatform("web");
           setIsReady(true);
           return;
         }
@@ -355,8 +367,6 @@ export const MiniappProvider = ({ children }: MiniappProviderProps) => {
           client: sdkContext?.client,
           features: sdkContext?.features,
         };
-
-        console.log("MiniApp SDK ready");
 
         setContext(fullContext);
         setIsMiniApp(true);
@@ -398,10 +408,16 @@ export const MiniappProvider = ({ children }: MiniappProviderProps) => {
 
       await new Promise(resolve => setTimeout(resolve, 100));
 
-      if (!isConnected) {
+      // For the Base App, reconnect() above is the ONLY auto-connect step. Do NOT
+      // call connect(): reconnect() is wagmi's fire-and-forget mutate (still in
+      // flight here), so an explicit connect() races it and corrupts wagmi into a
+      // stuck status="connecting" in the Base App. Returning users restore silently
+      // via reconnect(); first-time users tap the Connect button. Other hosts
+      // (Farcaster, MiniPay, World App) keep the explicit-connect fallback.
+      if (!isConnected && platform !== "base") {
         const targetChainId = targetChainForPlatform(platform);
         // Farcaster mini-apps use the frame connector; every other host
-        // (Base App, MiniPay, World App) exposes a standard injected provider.
+        // (MiniPay, World App) exposes a standard injected provider.
         const connector =
           platform === "farcaster"
             ? connectors.find(c => c.id === "farcasterMiniApp" || c.name?.toLowerCase().includes("farcaster"))

@@ -37,10 +37,12 @@ export const detectViniPlatform = (isFarcasterMiniApp = false): ViniPlatform => 
   const w = window as typeof window & {
     ethereum?: { isMiniPay?: boolean };
     WorldApp?: unknown;
-    MiniKit?: unknown;
   };
 
-  if (w.WorldApp || w.MiniKit) return "worldapp";
+  // Gate World App detection on the host-injected `window.WorldApp` only — NOT on
+  // `window.MiniKit`. `MiniKit.install()` sets `window.MiniKit`, so keying off it
+  // would mis-read any host that installed MiniKit (e.g. the Base App) as worldapp.
+  if (w.WorldApp) return "worldapp";
   if (w.ethereum?.isMiniPay || /MiniPay|Opera Mini/i.test(navigator.userAgent)) return "minipay";
   // Base App check MUST come before the Farcaster check. The Base App is a
   // mini-app host, so `sdk.isInMiniApp()` returns true there too — but it is a
