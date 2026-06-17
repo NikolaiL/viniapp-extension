@@ -110,7 +110,7 @@ export async function GET() {
   const baseUrl = getBaseUrl();
   const appName = clamp(process.env.NEXT_PUBLIC_APP_NAME, 32) || "ViniApp";
 
-  const frame = withValidProperties({
+  const miniapp = withValidProperties({
     version: "1",
     name: appName,
     subtitle: manifestText(process.env.NEXT_PUBLIC_APP_SUBTITLE, 30),
@@ -133,7 +133,7 @@ export async function GET() {
   return Response.json(
     withValidProperties({
       accountAssociation: accountAssociation(),
-      frame,
+      miniapp,
     }),
   );
 }
