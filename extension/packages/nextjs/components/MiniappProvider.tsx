@@ -11,46 +11,7 @@ import {
   shouldShowAppNativeTokenLinks,
   targetChainForPlatform,
 } from "~~/services/platform";
-
-// ---------------------------------------------------------------------------
-// Error beacon: reports uncaught client errors to /api/track/error (which
-// proxies them to the ViniApp backend with the server-only CDP key). The
-// aggregate feeds the builder's context on the next enhancement, so real
-// runtime failures replace user paraphrases. Module-level state gives a
-// per-page-load dedupe + throttle; the beacon itself must never throw.
-// ---------------------------------------------------------------------------
-const ERROR_BEACON_MAX_PER_WINDOW = 5;
-const ERROR_BEACON_WINDOW_MS = 60_000;
-const errorBeaconSeen = new Set<string>();
-let errorBeaconWindowStart = 0;
-let errorBeaconWindowCount = 0;
-
-function reportClientError(rawMessage: unknown): void {
-  try {
-    const message = String(rawMessage ?? "")
-      .split("\n")[0]
-      .slice(0, 500)
-      .trim();
-    if (!message) return;
-
-    const now = Date.now();
-    if (now - errorBeaconWindowStart > ERROR_BEACON_WINDOW_MS) {
-      errorBeaconWindowStart = now;
-      errorBeaconWindowCount = 0;
-    }
-    if (errorBeaconWindowCount >= ERROR_BEACON_MAX_PER_WINDOW || errorBeaconSeen.has(message)) return;
-    errorBeaconSeen.add(message);
-    errorBeaconWindowCount += 1;
-
-    void fetch("/api/track/error", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message, route: window.location.pathname, source: "client" }),
-    }).catch(() => {});
-  } catch {
-    /* never let the beacon become the error */
-  }
-}
+import { installClientErrorReporting } from "~~/utils/reportClientError";
 
 /**
  * Full Farcaster SDK context types
@@ -208,27 +169,7 @@ export const MiniappProvider = ({ children }: MiniappProviderProps) => {
   // One-shot guard so the open/track event fires exactly once per mount.
   const trackingFired = useRef(false);
 
-  // Error beacon: capture uncaught errors and unhandled promise rejections
-  // for the app's whole lifetime. Listener registration is idempotent per
-  // mount; dedupe/throttle live at module level (reportClientError).
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-
-    const onError = (event: ErrorEvent) => {
-      reportClientError(event?.message ?? event?.error);
-    };
-    const onRejection = (event: PromiseRejectionEvent) => {
-      const reason = event?.reason;
-      reportClientError(reason instanceof Error ? reason.message : reason);
-    };
-
-    window.addEventListener("error", onError);
-    window.addEventListener("unhandledrejection", onRejection);
-    return () => {
-      window.removeEventListener("error", onError);
-      window.removeEventListener("unhandledrejection", onRejection);
-    };
-  }, []);
+  useEffect(() => installClientErrorReporting(), []);
   // One-shot guard so wallet auto-connect runs once per mount and does not
   // re-fire on every wagmi connectors/isConnected change (first-load flicker).
   const autoConnectAttempted = useRef(false);
