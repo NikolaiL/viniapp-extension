@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
 const provider = readFileSync("extension/packages/nextjs/components/MiniappProvider.tsx", "utf8");
+const miniappLinks = readFileSync("extension/packages/nextjs/utils/miniappLinks.ts", "utf8");
+const miniappTypes = readFileSync("extension/packages/nextjs/types/miniapp.ts", "utf8");
 const homePageTemplate = readFileSync("extension/packages/nextjs/app/page.tsx.args.mjs", "utf8");
 const wagmiConfigTemplate = readFileSync("extension/packages/nextjs/services/web3/wagmiConfig.tsx.args.mjs", "utf8");
 
@@ -40,3 +42,24 @@ assert.match(
   /1:\s*\["https:\/\/ethereum-rpc\.publicnode\.com"\]/,
   "Generated wagmi config should use an explicit browser-safe Ethereum mainnet RPC instead of viem's default eth.merkle.io fallback",
 );
+
+assert.match(provider, /from "~~\/utils\/miniappLinks"/, "MiniappProvider should use shared navigation helpers");
+assert.match(
+  miniappLinks,
+  /export function parseFarcasterComposeUrl/,
+  "compose URL parsing should be independently testable",
+);
+assert.match(
+  miniappLinks,
+  /hostname\.endsWith\("\.farcaster\.xyz"\)/,
+  "compose parsing should require a real Farcaster host",
+);
+assert.match(miniappLinks, /export function buildCaip19TokenId/, "token actions should share CAIP-19 construction");
+assert.doesNotMatch(
+  provider,
+  /hostname\.includes\("warpcast\.com"\)/,
+  "provider should not contain permissive inline host checks",
+);
+assert.match(provider, /from "~~\/types\/miniapp"/, "MiniappProvider should keep SDK context types outside React code");
+assert.match(miniappTypes, /export type FullMiniAppContext/, "generated apps should receive reusable context types");
+assert.match(miniappTypes, /export function resolveClientFid/, "client FID resolution should remain reusable");

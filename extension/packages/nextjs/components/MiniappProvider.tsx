@@ -11,98 +11,30 @@ import {
   shouldShowAppNativeTokenLinks,
   targetChainForPlatform,
 } from "~~/services/platform";
+import type { FullMiniAppContext } from "~~/types/miniapp";
+import {
+  buildCaip19TokenId,
+  buildFarcasterComposeUrl,
+  buildTokenExplorerUrl,
+  buildUniswapSwapUrl,
+  parseFarcasterComposeUrl,
+  toCastEmbeds,
+} from "~~/utils/miniappLinks";
 import { installClientErrorReporting } from "~~/utils/reportClientError";
 
-/**
- * Full Farcaster SDK context types
- * Based on: https://miniapps.farcaster.xyz/docs/sdk/context
- */
-export type SafeAreaInsets = {
-  top: number;
-  bottom: number;
-  left: number;
-  right: number;
-};
-
-export type MiniAppNotificationDetails = {
-  url: string;
-  token: string;
-};
-
-export type MiniAppPlatformType = "web" | "mobile";
-
-export type AccountLocation = {
-  placeId: string;
-  description: string;
-};
-
-export type User = {
-  fid: number;
-  username?: string;
-  displayName?: string;
-  pfpUrl?: string;
-  bio?: string;
-  location?: AccountLocation;
-};
-
-export type MiniAppCast = {
-  author: User;
-  hash: string;
-  parentHash?: string;
-  parentFid?: number;
-  timestamp?: number;
-  mentions?: User[];
-  text: string;
-  embeds?: string[];
-  channelKey?: string;
-};
-
-export type LocationContext =
-  | { type: "cast_embed"; embed: string; cast: MiniAppCast }
-  | { type: "cast_share"; cast: MiniAppCast }
-  | { type: "notification"; notification: { notificationId: string; title: string; body: string } }
-  | { type: "launcher" }
-  | { type: "channel"; channel: { key: string; name: string; imageUrl?: string } }
-  | { type: "open_miniapp"; referrerDomain: string };
-
-export type ClientContext = {
-  platformType?: MiniAppPlatformType;
-  clientFid: number;
-  added: boolean;
-  safeAreaInsets?: SafeAreaInsets;
-  notificationDetails?: MiniAppNotificationDetails;
-};
-
-export type ClientFeatures = {
-  haptics: boolean;
-  cameraAndMicrophoneAccess?: boolean;
-};
-
-export type FullMiniAppContext = {
-  user: User | null;
-  location?: LocationContext;
-  client?: ClientContext;
-  features?: ClientFeatures;
-};
-
-/**
- * Known Client FIDs
- * Map of client FIDs to their display names
- */
-const KNOWN_CLIENT_FIDS: Record<number, string> = {
-  9152: "Warpcast",
-  309857: "Base App",
-};
-
-/**
- * Resolve a client FID to its display name
- * @param fid - The client FID to resolve
- * @returns The client name if known, otherwise "Unknown Client"
- */
-export const resolveClientFid = (fid: number | undefined): string => {
-  if (!fid) return "Unknown";
-  return KNOWN_CLIENT_FIDS[fid] || `Unknown Client (${fid})`;
-};
+export type {
+  AccountLocation,
+  ClientContext,
+  ClientFeatures,
+  FullMiniAppContext,
+  LocationContext,
+  MiniAppCast,
+  MiniAppNotificationDetails,
+  MiniAppPlatformType,
+  SafeAreaInsets,
+  User,
+} from "~~/types/miniapp";
+export { resolveClientFid } from "~~/types/miniapp";
 
 /**
  * MiniappContext provides full SDK context and initialization state
@@ -185,21 +117,13 @@ export const MiniappProvider = ({ children }: MiniappProviderProps) => {
       }
 
       if (isMiniApp) {
-        const trimmed = embeds.filter(Boolean).slice(0, 2);
-        const embedsTuple = ((): [] | [string] | [string, string] => {
-          if (trimmed.length >= 2) return [trimmed[0], trimmed[1]] as [string, string];
-          if (trimmed.length === 1) return [trimmed[0]] as [string];
-          return [] as [];
-        })();
+        const embedsTuple = toCastEmbeds(embeds);
         console.log("composeCast processing", castText, embedsTuple);
         await sdk.actions.composeCast({ text: castText, embeds: embedsTuple });
 
         return;
       }
-      const url = new URL("https://farcaster.xyz/~/compose");
-      url.searchParams.set("text", castText);
-      for (const e of embeds) url.searchParams.append("embeds[]", e);
-      if (typeof window !== "undefined") window.open(url.toString(), "_blank");
+      if (typeof window !== "undefined") window.open(buildFarcasterComposeUrl(castText, embeds), "_blank");
     } catch (err) {
       console.error("composeCast error", err);
     }
@@ -207,19 +131,12 @@ export const MiniappProvider = ({ children }: MiniappProviderProps) => {
 
   const openLink = async (url: string) => {
     try {
-      // Detect compose URLs (warpcast.com or farcaster.xyz)
-      const parsed = new URL(url, typeof window !== "undefined" ? window.location.href : "https://local");
-      const hostname = parsed.hostname.toLowerCase();
-      const pathname = parsed.pathname;
-      const isCompose =
-        (hostname.includes("warpcast.com") || hostname.includes("farcaster.xyz")) && pathname === "/~/compose";
-
-      if (isCompose) {
-        const textParam = parsed.searchParams.get("text") || "";
-        // URLSearchParams decodes automatically; replace "+" with space just in case
-        const text = textParam.replace(/\+/g, " ");
-        const embeds = parsed.searchParams.getAll("embeds[]");
-        await composeCast({ text, embeds });
+      const composeRequest = parseFarcasterComposeUrl(
+        url,
+        typeof window !== "undefined" ? window.location.href : "https://local",
+      );
+      if (composeRequest) {
+        await composeCast(composeRequest);
         return;
       }
 
@@ -265,19 +182,17 @@ export const MiniappProvider = ({ children }: MiniappProviderProps) => {
     try {
       if (!shouldShowAppNativeTokenLinks(platform)) return;
 
-      const caip19 = `eip155:${chain}/erc20:${tokenAddress}`;
+      const caip19 = buildCaip19TokenId(tokenAddress, chain);
       if (isMiniApp) {
         await (sdk.actions as any).viewToken({ token: caip19 });
         return;
       }
       // Fallback: open on basescan (or appropriate explorer)
-      const explorerUrl =
-        chain === "8453" ? `https://basescan.org/token/${tokenAddress}` : `https://etherscan.io/token/${tokenAddress}`;
-      if (typeof window !== "undefined") window.open(explorerUrl, "_blank");
+      if (typeof window !== "undefined") window.open(buildTokenExplorerUrl(tokenAddress, chain), "_blank");
     } catch (err) {
       console.error("viewToken error", err);
       if (typeof window !== "undefined") {
-        window.open(`https://basescan.org/token/${tokenAddress}`, "_blank");
+        window.open(buildTokenExplorerUrl(tokenAddress), "_blank");
       }
     }
   };
@@ -308,18 +223,16 @@ export const MiniappProvider = ({ children }: MiniappProviderProps) => {
         return;
       }
 
-      const buildCaip19 = (addr: string) => `eip155:${chain}/erc20:${addr}`;
       if (isMiniApp) {
         const swapParams: Record<string, string> = {};
-        if (buyToken) swapParams.buyToken = buildCaip19(buyToken);
-        if (sellToken) swapParams.sellToken = buildCaip19(sellToken);
+        if (buyToken) swapParams.buyToken = buildCaip19TokenId(buyToken, chain);
+        if (sellToken) swapParams.sellToken = buildCaip19TokenId(sellToken, chain);
         await (sdk.actions as any).swapToken(swapParams);
         return;
       }
       // Fallback: open Uniswap
       const tokenAddr = buyToken || sellToken || "";
-      const uniswapUrl = `https://app.uniswap.org/swap?chain=base&outputCurrency=${tokenAddr}`;
-      if (typeof window !== "undefined") window.open(uniswapUrl, "_blank");
+      if (typeof window !== "undefined") window.open(buildUniswapSwapUrl(tokenAddr), "_blank");
     } catch (err) {
       console.error("swapToken error", err);
     }
@@ -346,7 +259,7 @@ export const MiniappProvider = ({ children }: MiniappProviderProps) => {
         try {
           inMiniApp = await Promise.race([
             sdk.isInMiniApp(),
-            new Promise<boolean>(resolve => setTimeout(() => resolve(false), 1000)),
+            new Promise<boolean>((resolve) => setTimeout(() => resolve(false), 1000)),
           ]);
         } catch {
           inMiniApp = false;
@@ -359,7 +272,7 @@ export const MiniappProvider = ({ children }: MiniappProviderProps) => {
           return;
         }
 
-        const readyPromise = sdk.actions.ready().catch(error => {
+        const readyPromise = sdk.actions.ready().catch((error) => {
           console.error("MiniApp SDK ready() error:", error);
         });
         const sdkContext = await sdk.context;
@@ -409,7 +322,7 @@ export const MiniappProvider = ({ children }: MiniappProviderProps) => {
         console.log("Reconnect attempt:", e);
       }
 
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 100));
 
       // For the Base App, reconnect() above is the ONLY auto-connect step. Do NOT
       // call connect(): reconnect() is wagmi's fire-and-forget mutate (still in
@@ -424,13 +337,16 @@ export const MiniappProvider = ({ children }: MiniappProviderProps) => {
         // uses the standard injected provider.
         let connector;
         if (platform === "farcaster") {
-          connector = connectors.find(c => c.id === "farcasterMiniApp" || c.name?.toLowerCase().includes("farcaster"));
+          connector = connectors.find(
+            (c) => c.id === "farcasterMiniApp" || c.name?.toLowerCase().includes("farcaster"),
+          );
         } else if (platform === "worldapp") {
           connector =
-            connectors.find(c => c.id === "worldApp" || c.name?.toLowerCase().includes("world")) ||
-            connectors.find(c => c.id === "injected" || c.name?.toLowerCase().includes("injected"));
+            connectors.find((c) => c.id === "worldApp" || c.name?.toLowerCase().includes("world")) ||
+            connectors.find((c) => c.id === "injected" || c.name?.toLowerCase().includes("injected"));
         } else {
-          connector = connectors.find(c => c.id === "injected" || c.name?.toLowerCase().includes("injected")) || connectors[0];
+          connector =
+            connectors.find((c) => c.id === "injected" || c.name?.toLowerCase().includes("injected")) || connectors[0];
         }
 
         if (connector) {
