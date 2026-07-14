@@ -6,6 +6,7 @@ const miniappLinks = readFileSync("extension/packages/nextjs/utils/miniappLinks.
 const miniappTypes = readFileSync("extension/packages/nextjs/types/miniapp.ts", "utf8");
 const homePageTemplate = readFileSync("extension/packages/nextjs/app/page.tsx.args.mjs", "utf8");
 const wagmiConfigTemplate = readFileSync("extension/packages/nextjs/services/web3/wagmiConfig.tsx.args.mjs", "utf8");
+const verifyScript = readFileSync("extension/packages/hardhat/scripts/runVerify.ts", "utf8");
 
 assert.match(
   provider,
@@ -63,3 +64,19 @@ assert.doesNotMatch(
 assert.match(provider, /from "~~\/types\/miniapp"/, "MiniappProvider should keep SDK context types outside React code");
 assert.match(miniappTypes, /export type FullMiniAppContext/, "generated apps should receive reusable context types");
 assert.match(miniappTypes, /export function resolveClientFid/, "client FID resolution should remain reusable");
+
+assert.doesNotMatch(
+  verifyScript,
+  /from ["']\.\.\/hardhat\.config\.js["']/,
+  "Generated verification should not depend on named hardhat config exports",
+);
+assert.match(
+  verifyScript,
+  /process\.env\.ETHERSCAN_API_KEY\?\.trim\(\)/,
+  "Generated verification should prefer an app owner's Etherscan key",
+);
+assert.match(
+  verifyScript,
+  /userKey \|\| sharedEtherscanApiKey/,
+  "Generated verification should retain Scaffold-ETH's public shared key fallback",
+);
