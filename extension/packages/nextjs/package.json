@@ -1,4 +1,8 @@
 {
+    "scripts": {
+      "build": "next build",
+      "lint": "eslint ."
+    },
     "dependencies": {
       "@farcaster/miniapp-sdk": "^0.3.0",
       "@farcaster/miniapp-wagmi-connector": "^2.0.0",
