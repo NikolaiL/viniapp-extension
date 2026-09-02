@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { reportServerError, withErrorReporting } from "~~/utils/reportServerError";
 
 /**
  * Resolve the app's own domain from TRUSTED configuration for Farcaster JWT
@@ -23,7 +24,7 @@ function trustedDomain(backendUrl: string): string {
   return new URL(backendUrl).hostname;
 }
 
-export async function POST(request: NextRequest) {
+export const POST = withErrorReporting("/api/track/open", async (request: NextRequest) => {
   const cdpKey = process.env.CDP_PROXY_KEY;
   const backendUrl = process.env.VINIAPP_BACKEND;
 
@@ -79,7 +80,8 @@ export async function POST(request: NextRequest) {
 
     const data = await response.json();
     return NextResponse.json(data);
-  } catch {
+  } catch (err) {
+    reportServerError(err, "/api/track/open");
     return NextResponse.json({ success: false, error: "Tracking failed" }, { status: 500 });
   }
-}
+});

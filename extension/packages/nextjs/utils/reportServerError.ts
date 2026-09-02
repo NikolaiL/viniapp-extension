@@ -1,3 +1,5 @@
+import type { NextRequest } from "next/server";
+
 /**
  * Server-side error reporter for API route handlers.
  *
@@ -33,7 +35,10 @@ export function reportServerError(err: unknown, route?: string): void {
     if (!cdpKey || !backendUrl) return;
 
     const raw = err instanceof Error ? err.message : String(err);
-    const message = raw.split("\n")[0]?.slice(0, MAX_MESSAGE_CHARS) ?? "";
+    // Strip embedded URL credentials (e.g. postgres://user:pass@host) before
+    // this ever leaves the process — a beacon must not leak secrets.
+    const redacted = raw.replace(/\/\/[^\s/@:]+:[^\s/@]+@/g, "//***:***@");
+    const message = redacted.split("\n")[0]?.slice(0, MAX_MESSAGE_CHARS) ?? "";
     if (!message.trim()) return;
 
     const payload: Record<string, string> = { message, source: "server" };
@@ -53,4 +58,48 @@ export function reportServerError(err: unknown, route?: string): void {
   } catch {
     /* a beacon must never take the app down with it */
   }
+}
+
+/**
+ * Wrap an App Router route handler so any uncaught error is reported to the
+ * platform (with the route name) and turned into a generic 500. Handlers that
+ * catch and handle their own errors should still call reportServerError()
+ * inside the catch block before responding.
+ *
+ * Static routes only need the request:
+ *
+ *   export const POST = withErrorReporting("/api/scores", async (request) => { ... });
+ *
+ * Dynamic routes (e.g. `[id]`) must supply the route's params type explicitly
+ * so `context.params` type-checks, and must `await` params (Next.js 15+):
+ *
+ *   export const GET = withErrorReporting<{ params: Promise<{ id: string }> }>(
+ *     "/api/x/[id]",
+ *     async (_request, { params }) => {
+ *       const { id } = await params;
+ *       ...
+ *     },
+ *   );
+ *
+ * `request` is typed `NextRequest`; the default `Ctx` is compatible with
+ * every Next.js route context (including routes with no dynamic segments),
+ * so static routes never need to name it.
+ */
+type RouteContext = { params: Promise<Record<string, string | string[] | undefined>> };
+
+export function withErrorReporting<Ctx extends RouteContext = RouteContext>(
+  route: string,
+  handler: (request: NextRequest, context: Ctx) => Promise<Response> | Response,
+): (request: NextRequest, context: Ctx) => Promise<Response> {
+  return async (request: NextRequest, context: Ctx) => {
+    try {
+      return await handler(request, context);
+    } catch (err) {
+      reportServerError(err, route);
+      return new Response(JSON.stringify({ error: "Something went wrong" }), {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+  };
 }

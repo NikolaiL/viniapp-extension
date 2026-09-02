@@ -13,6 +13,8 @@ import { NextRequest, NextResponse } from "next/server";
 const MAX_MESSAGE_CHARS = 5000;
 const MAX_ROUTE_CHARS = 300;
 
+// Intentionally not wrapped in withErrorReporting: this IS the beacon.
+// platform-invariant: error-beacon-proxy
 export async function POST(request: NextRequest) {
   const cdpKey = process.env.CDP_PROXY_KEY;
   const backendUrl = process.env.VINIAPP_BACKEND;
