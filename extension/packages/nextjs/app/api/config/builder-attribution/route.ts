@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { Attribution } from "ox/erc8021";
+import { withErrorReporting } from "~~/utils/reportServerError";
 
 export const runtime = "nodejs";
 
@@ -11,10 +12,10 @@ const DEFAULT_BUILDER_CODE = "bc_41su3c2k";
  * NEXT_PUBLIC_BUILDER_CODE (inlined into the client bundle at build time).
  * Falls back to the platform default so transactions are always attributed.
  */
-export async function GET() {
+export const GET = withErrorReporting("/api/config/builder-attribution", async () => {
   const code = process.env.BUILDER_CODE?.trim() || process.env.NEXT_PUBLIC_BUILDER_CODE?.trim() || DEFAULT_BUILDER_CODE;
 
   const dataSuffix = Attribution.toDataSuffix({ codes: [code] });
 
   return NextResponse.json({ code, dataSuffix }, { headers: { "Cache-Control": "no-store, max-age=0" } });
-}
+});

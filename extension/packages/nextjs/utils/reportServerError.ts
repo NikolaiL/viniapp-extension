@@ -1,3 +1,5 @@
+import { NextResponse } from "next/server";
+
 /**
  * Server-side error reporter for API route handlers.
  *
@@ -53,4 +55,26 @@ export function reportServerError(err: unknown, route?: string): void {
   } catch {
     /* a beacon must never take the app down with it */
   }
+}
+
+/**
+ * Wrap an App Router route handler so any uncaught error is reported to the
+ * platform (with the route name) and turned into a generic 500. Handlers that
+ * catch and handle their own errors should still call reportServerError()
+ * inside the catch block before responding.
+ *
+ *   export const POST = withErrorReporting("/api/scores", async (request) => { ... });
+ */
+export function withErrorReporting<Args extends unknown[]>(
+  route: string,
+  handler: (...args: Args) => Promise<Response> | Response,
+): (...args: Args) => Promise<Response> {
+  return async (...args: Args) => {
+    try {
+      return await handler(...args);
+    } catch (err) {
+      reportServerError(err, route);
+      return NextResponse.json({ error: "Something went wrong" }, { status: 500 });
+    }
+  };
 }
