@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
 
 /**
  * Server-side error reporter for API route handlers.
@@ -35,7 +35,10 @@ export function reportServerError(err: unknown, route?: string): void {
     if (!cdpKey || !backendUrl) return;
 
     const raw = err instanceof Error ? err.message : String(err);
-    const message = raw.split("\n")[0]?.slice(0, MAX_MESSAGE_CHARS) ?? "";
+    // Strip embedded URL credentials (e.g. postgres://user:pass@host) before
+    // this ever leaves the process — a beacon must not leak secrets.
+    const redacted = raw.replace(/\/\/[^\s/@:]+:[^\s/@]+@/g, "//***:***@");
+    const message = redacted.split("\n")[0]?.slice(0, MAX_MESSAGE_CHARS) ?? "";
     if (!message.trim()) return;
 
     const payload: Record<string, string> = { message, source: "server" };
@@ -64,17 +67,23 @@ export function reportServerError(err: unknown, route?: string): void {
  * inside the catch block before responding.
  *
  *   export const POST = withErrorReporting("/api/scores", async (request) => { ... });
+ *
+ * `request` is typed `NextRequest`; dynamic routes (e.g. `[id]`) receive the
+ * route's `context` (with `params`) as the second argument.
  */
-export function withErrorReporting<Args extends unknown[]>(
+export function withErrorReporting<Ctx = undefined>(
   route: string,
-  handler: (...args: Args) => Promise<Response> | Response,
-): (...args: Args) => Promise<Response> {
-  return async (...args: Args) => {
+  handler: (request: NextRequest, context: Ctx) => Promise<Response> | Response,
+): (request: NextRequest, context: Ctx) => Promise<Response> {
+  return async (request: NextRequest, context: Ctx) => {
     try {
-      return await handler(...args);
+      return await handler(request, context);
     } catch (err) {
       reportServerError(err, route);
-      return NextResponse.json({ error: "Something went wrong" }, { status: 500 });
+      return new Response(JSON.stringify({ error: "Something went wrong" }), {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      });
     }
   };
 }
