@@ -11,7 +11,7 @@ import {
   shouldShowAppNativeTokenLinks,
   targetChainForPlatform,
 } from "~~/services/platform";
-import type { FullMiniAppContext } from "~~/types/miniapp";
+import type { FullMiniAppContext, SafeAreaInsets } from "~~/types/miniapp";
 import {
   buildCaip19TokenId,
   buildFarcasterComposeUrl,
@@ -102,6 +102,33 @@ export const MiniappProvider = ({ children }: MiniappProviderProps) => {
   const trackingFired = useRef(false);
 
   useEffect(() => installClientErrorReporting(), []);
+
+  // Safe-area bridge: raise the scaffold's --safe-area-inset-* CSS variables
+  // to the host SDK's measured insets. Farcaster reports them in the SDK
+  // context; World App injects window.WorldApp.safe_area_insets. Both are
+  // combined with the OS env() value via max() so neither source is lost.
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+
+    const hostInsets: Partial<SafeAreaInsets> | undefined =
+      platform === "farcaster"
+        ? context.client?.safeAreaInsets
+        : platform === "worldapp"
+          ? (window as unknown as { WorldApp?: { safe_area_insets?: Partial<SafeAreaInsets> } }).WorldApp
+              ?.safe_area_insets
+          : undefined;
+
+    const style = document.documentElement.style;
+    (["top", "right", "bottom", "left"] as const).forEach((side) => {
+      const env = `env(safe-area-inset-${side}, 0px)`;
+      const host = hostInsets?.[side];
+      style.setProperty(
+        `--safe-area-inset-${side}`,
+        typeof host === "number" && host > 0 ? `max(${env}, ${Math.round(host)}px)` : env,
+      );
+    });
+  }, [platform, context.client?.safeAreaInsets]);
+
   // One-shot guard so wallet auto-connect runs once per mount and does not
   // re-fire on every wagmi connectors/isConnected change (first-load flicker).
   const autoConnectAttempted = useRef(false);

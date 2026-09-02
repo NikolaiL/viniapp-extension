@@ -1,4 +1,18 @@
 export const postContent = `
+/* Safe-area bridge. MiniappProvider raises these to the host SDK's insets
+   (Farcaster context.client.safeAreaInsets, World App safe_area_insets)
+   when they are larger than the OS env() values. Always use the variables,
+   never raw env(), so host chrome is respected. */
+:root {
+  --safe-area-inset-top: env(safe-area-inset-top, 0px);
+  --safe-area-inset-right: env(safe-area-inset-right, 0px);
+  --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-area-inset-left: env(safe-area-inset-left, 0px);
+}
+.pt-safe { padding-top: var(--safe-area-inset-top); }
+.pb-safe { padding-bottom: var(--safe-area-inset-bottom); }
+.px-safe { padding-left: var(--safe-area-inset-left); padding-right: var(--safe-area-inset-right); }
+
 /* ViniApp Tailwind DaisyUI compatibility layer.
    Keep this in sync with the backend generated-app cleanup fallback. */
 @theme {
