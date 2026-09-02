@@ -66,12 +66,28 @@ export function reportServerError(err: unknown, route?: string): void {
  * catch and handle their own errors should still call reportServerError()
  * inside the catch block before responding.
  *
+ * Static routes only need the request:
+ *
  *   export const POST = withErrorReporting("/api/scores", async (request) => { ... });
  *
- * `request` is typed `NextRequest`; dynamic routes (e.g. `[id]`) receive the
- * route's `context` (with `params`) as the second argument.
+ * Dynamic routes (e.g. `[id]`) must supply the route's params type explicitly
+ * so `context.params` type-checks, and must `await` params (Next.js 15+):
+ *
+ *   export const GET = withErrorReporting<{ params: Promise<{ id: string }> }>(
+ *     "/api/x/[id]",
+ *     async (_request, { params }) => {
+ *       const { id } = await params;
+ *       ...
+ *     },
+ *   );
+ *
+ * `request` is typed `NextRequest`; the default `Ctx` is compatible with
+ * every Next.js route context (including routes with no dynamic segments),
+ * so static routes never need to name it.
  */
-export function withErrorReporting<Ctx = undefined>(
+type RouteContext = { params: Promise<Record<string, string | string[] | undefined>> };
+
+export function withErrorReporting<Ctx extends RouteContext = RouteContext>(
   route: string,
   handler: (request: NextRequest, context: Ctx) => Promise<Response> | Response,
 ): (request: NextRequest, context: Ctx) => Promise<Response> {

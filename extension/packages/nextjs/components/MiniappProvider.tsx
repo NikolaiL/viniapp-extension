@@ -43,7 +43,9 @@ export { resolveClientFid } from "~~/types/miniapp";
  * - Access all context: const { context, isReady, isMiniApp } = useMiniapp()
  * - Access user: context.user
  * - Check launch context: if (context.location?.type === 'cast_embed') { ... }
- * - Use safe area insets: context.client?.safeAreaInsets
+ * - Safe areas: use the CSS variables `--safe-area-inset-*` / `.pt-safe` `.pb-safe`
+ *   `.px-safe` (this provider bridges Farcaster and World App insets into them);
+ *   never read SDK insets in components.
  * - Check features: if (context.features?.haptics) { ... }
  * - Helper functions: openLink(), composeCast(), openProfile()
  * - For SDK methods: import { sdk } from "@farcaster/miniapp-sdk" and use directly
