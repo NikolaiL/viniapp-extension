@@ -115,12 +115,18 @@ export async function GET() {
     name: appName,
     subtitle: manifestText(process.env.NEXT_PUBLIC_APP_SUBTITLE, 30),
     description: manifestText(process.env.NEXT_PUBLIC_APP_DESCRIPTION, 170),
-    iconUrl: absoluteUrl(process.env.NEXT_PUBLIC_APP_ICON || "/icon.png", baseUrl),
-    splashImageUrl: absoluteUrl(process.env.NEXT_PUBLIC_APP_SPLASH_IMAGE || "/splash.png", baseUrl),
+    // Defaults point at an asset the scaffold actually ships (public/favicon.png
+    // from the base template); /icon.png and /splash.png do not exist unless the
+    // app adds them. Real apps set NEXT_PUBLIC_APP_ICON / _SPLASH_IMAGE.
+    iconUrl: absoluteUrl(process.env.NEXT_PUBLIC_APP_ICON || "/favicon.png", baseUrl),
+    splashImageUrl: absoluteUrl(process.env.NEXT_PUBLIC_APP_SPLASH_IMAGE || "/favicon.png", baseUrl),
     splashBackgroundColor: process.env.NEXT_PUBLIC_SPLASH_BACKGROUND_COLOR,
     homeUrl: baseUrl,
     screenshotUrls: screenshotUrls(process.env.NEXT_PUBLIC_APP_SCREENSHOTS, baseUrl),
-    webhookUrl: absoluteUrl(process.env.NEXT_PUBLIC_WEBHOOK_URL || "/api/webhook", baseUrl),
+    // Omitted (withValidProperties strips undefined) unless the app really has
+    // a webhook: advertising a non-existent /api/webhook makes Farcaster POST
+    // notification events into a 404.
+    webhookUrl: absoluteUrl(process.env.NEXT_PUBLIC_WEBHOOK_URL, baseUrl),
     primaryCategory: category(process.env.NEXT_PUBLIC_APP_PRIMARY_CATEGORY),
     tags: manifestTags(process.env.NEXT_PUBLIC_APP_TAGS),
     heroImageUrl: absoluteUrl(process.env.NEXT_PUBLIC_APP_HERO_IMAGE, baseUrl),
