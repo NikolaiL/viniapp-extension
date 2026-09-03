@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { reportServerError, withErrorReporting } from "~~/utils/reportServerError";
+import { clientIp, isSameOriginRequest, takeRateLimitToken } from "~~/utils/requestGuards";
+
+// Per-IP open-event cap. In-memory and per-instance (see utils/requestGuards.ts).
+const RATE_LIMIT_EVENTS = 60;
+const RATE_LIMIT_WINDOW_MS = 5 * 60_000;
 
 /**
  * Resolve the app's own domain from TRUSTED configuration for Farcaster JWT
@@ -29,6 +34,16 @@ export const POST = withErrorReporting("/api/track/open", async (request: NextRe
   const backendUrl = process.env.VINIAPP_BACKEND;
 
   if (!cdpKey || !backendUrl) {
+    return NextResponse.json({ success: true, skipped: true });
+  }
+
+  // Only this app's own pages may record opens, and only at a sane rate.
+  // Rejections answer exactly like the "not configured" path above so a
+  // cross-site caller learns nothing.
+  if (
+    !isSameOriginRequest(request) ||
+    !takeRateLimitToken("track-open", clientIp(request), RATE_LIMIT_EVENTS, RATE_LIMIT_WINDOW_MS)
+  ) {
     return NextResponse.json({ success: true, skipped: true });
   }
 
