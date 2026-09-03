@@ -1,0 +1,13 @@
+{
+  "name": "viniapp-extension-dev",
+  "private": true,
+  "description": "Dev tooling for the ViniApp create-eth extension. Not merged into scaffolded apps: create-eth only reads the extension/ directory.",
+  "scripts": {
+    "test": "node scripts/test-miniapp-template-readiness.mjs",
+    "format": "prettier --config scripts/prettier.nextjs.config.cjs --write \"extension/packages/nextjs/**/*.{ts,tsx}\" && prettier --config scripts/prettier.hardhat.config.cjs --write \"extension/packages/hardhat/**/*.ts\""
+  },
+  "devDependencies": {
+    "@trivago/prettier-plugin-sort-imports": "~6.0.2",
+    "prettier": "~3.8.3"
+  }
+}
