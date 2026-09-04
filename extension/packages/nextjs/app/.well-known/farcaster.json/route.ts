@@ -115,12 +115,17 @@ export async function GET() {
     name: appName,
     subtitle: manifestText(process.env.NEXT_PUBLIC_APP_SUBTITLE, 30),
     description: manifestText(process.env.NEXT_PUBLIC_APP_DESCRIPTION, 170),
-    iconUrl: absoluteUrl(process.env.NEXT_PUBLIC_APP_ICON || "/icon.png", baseUrl),
-    splashImageUrl: absoluteUrl(process.env.NEXT_PUBLIC_APP_SPLASH_IMAGE || "/splash.png", baseUrl),
+    // Standards-compliant defaults shipped by the extension. Real apps replace
+    // these through the generated brand metadata/environment values.
+    iconUrl: absoluteUrl(process.env.NEXT_PUBLIC_APP_ICON || "/viniapp-icon.png", baseUrl),
+    splashImageUrl: absoluteUrl(process.env.NEXT_PUBLIC_APP_SPLASH_IMAGE || "/viniapp-splash.png", baseUrl),
     splashBackgroundColor: process.env.NEXT_PUBLIC_SPLASH_BACKGROUND_COLOR,
     homeUrl: baseUrl,
     screenshotUrls: screenshotUrls(process.env.NEXT_PUBLIC_APP_SCREENSHOTS, baseUrl),
-    webhookUrl: absoluteUrl(process.env.NEXT_PUBLIC_WEBHOOK_URL || "/api/webhook", baseUrl),
+    // Omitted (withValidProperties strips undefined) unless the app really has
+    // a webhook: advertising a non-existent /api/webhook makes Farcaster POST
+    // notification events into a 404.
+    webhookUrl: absoluteUrl(process.env.NEXT_PUBLIC_WEBHOOK_URL, baseUrl),
     primaryCategory: category(process.env.NEXT_PUBLIC_APP_PRIMARY_CATEGORY),
     tags: manifestTags(process.env.NEXT_PUBLIC_APP_TAGS),
     heroImageUrl: absoluteUrl(process.env.NEXT_PUBLIC_APP_HERO_IMAGE, baseUrl),

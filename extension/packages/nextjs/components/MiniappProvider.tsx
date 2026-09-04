@@ -69,6 +69,35 @@ interface MiniappContextType {
 const MiniappContext = createContext<MiniappContextType | undefined>(undefined);
 
 /**
+ * Fire-and-forget `sdk.actions.ready()`.
+ *
+ * Called on mount BEFORE host detection: the Farcaster splash only dismisses
+ * once the host receives ready(), and waiting on `sdk.isInMiniApp()` first
+ * (a full bridge round-trip, or a 1s timeout) delays first paint for nothing.
+ * The SDK no-ops outside a Farcaster host, and one short retry (a yield, not
+ * a backoff) covers the bridge not being attached yet. Never throws, never
+ * rejects — nothing may await it on Base App / plain web, where SDK promises
+ * can hang forever.
+ */
+const callReady = (): Promise<void> => {
+  try {
+    return sdk.actions
+      .ready()
+      .catch(async () => {
+        await new Promise(resolve => setTimeout(resolve, 500));
+        try {
+          await sdk.actions.ready();
+        } catch (error) {
+          console.error("MiniApp SDK ready() error:", error);
+        }
+      })
+      .catch(() => {});
+  } catch {
+    return Promise.resolve();
+  }
+};
+
+/**
  * Hook to access Farcaster miniapp context
  * Provides full SDK context, user data, and initialization state
  *
@@ -121,7 +150,7 @@ export const MiniappProvider = ({ children }: MiniappProviderProps) => {
           : undefined;
 
     const style = document.documentElement.style;
-    (["top", "right", "bottom", "left"] as const).forEach((side) => {
+    (["top", "right", "bottom", "left"] as const).forEach(side => {
       const env = `env(safe-area-inset-${side}, 0px)`;
       const host = hostInsets?.[side];
       style.setProperty(
@@ -147,7 +176,6 @@ export const MiniappProvider = ({ children }: MiniappProviderProps) => {
 
       if (isMiniApp) {
         const embedsTuple = toCastEmbeds(embeds);
-        console.log("composeCast processing", castText, embedsTuple);
         await sdk.actions.composeCast({ text: castText, embeds: embedsTuple });
 
         return;
@@ -268,6 +296,11 @@ export const MiniappProvider = ({ children }: MiniappProviderProps) => {
   };
 
   useEffect(() => {
+    // ready() first, unconditionally, in parallel with detection (see callReady).
+    // Only the confirmed mini-app branch below awaits it, and only after
+    // isReady is already set, so a hung host can never block initialization.
+    const readyPromise = callReady();
+
     const initialize = async () => {
       try {
         // Provider-first: detect injected-provider hosts (Base App, MiniPay, World
@@ -288,7 +321,7 @@ export const MiniappProvider = ({ children }: MiniappProviderProps) => {
         try {
           inMiniApp = await Promise.race([
             sdk.isInMiniApp(),
-            new Promise<boolean>((resolve) => setTimeout(() => resolve(false), 1000)),
+            new Promise<boolean>(resolve => setTimeout(() => resolve(false), 1000)),
           ]);
         } catch {
           inMiniApp = false;
@@ -301,9 +334,6 @@ export const MiniappProvider = ({ children }: MiniappProviderProps) => {
           return;
         }
 
-        const readyPromise = sdk.actions.ready().catch((error) => {
-          console.error("MiniApp SDK ready() error:", error);
-        });
         const sdkContext = await sdk.context;
 
         const fullContext: FullMiniAppContext = {
@@ -351,7 +381,7 @@ export const MiniappProvider = ({ children }: MiniappProviderProps) => {
         console.log("Reconnect attempt:", e);
       }
 
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      await new Promise(resolve => setTimeout(resolve, 100));
 
       // For the Base App, reconnect() above is the ONLY auto-connect step. Do NOT
       // call connect(): reconnect() is wagmi's fire-and-forget mutate (still in
@@ -366,16 +396,14 @@ export const MiniappProvider = ({ children }: MiniappProviderProps) => {
         // uses the standard injected provider.
         let connector;
         if (platform === "farcaster") {
-          connector = connectors.find(
-            (c) => c.id === "farcasterMiniApp" || c.name?.toLowerCase().includes("farcaster"),
-          );
+          connector = connectors.find(c => c.id === "farcasterMiniApp" || c.name?.toLowerCase().includes("farcaster"));
         } else if (platform === "worldapp") {
           connector =
-            connectors.find((c) => c.id === "worldApp" || c.name?.toLowerCase().includes("world")) ||
-            connectors.find((c) => c.id === "injected" || c.name?.toLowerCase().includes("injected"));
+            connectors.find(c => c.id === "worldApp" || c.name?.toLowerCase().includes("world")) ||
+            connectors.find(c => c.id === "injected" || c.name?.toLowerCase().includes("injected"));
         } else {
           connector =
-            connectors.find((c) => c.id === "injected" || c.name?.toLowerCase().includes("injected")) || connectors[0];
+            connectors.find(c => c.id === "injected" || c.name?.toLowerCase().includes("injected")) || connectors[0];
         }
 
         if (connector) {

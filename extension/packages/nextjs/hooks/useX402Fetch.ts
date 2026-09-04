@@ -1,9 +1,8 @@
 import { useCallback, useMemo } from "react";
 import { ExactEvmScheme, toClientEvmSigner } from "@x402/evm";
 import { wrapFetchWithPaymentFromConfig } from "@x402/fetch";
-import { createPublicClient, http } from "viem";
 import { base } from "viem/chains";
-import { useAccount, useWalletClient } from "wagmi";
+import { useAccount, usePublicClient, useWalletClient } from "wagmi";
 
 /**
  * The x402 library sets `Access-Control-Expose-Headers` as a request header
@@ -29,14 +28,18 @@ const corsSafeFetch: typeof globalThis.fetch = (input, init) => {
 export function useX402Fetch() {
   const { address } = useAccount();
   const { data: walletClient, isLoading: isWalletLoading } = useWalletClient();
+  // The app's configured Base client (RPC overrides / fallbacks / polling from
+  // wagmiConfig) rather than a bare `createPublicClient({ transport: http() })`
+  // that would hammer the public default RPC. Undefined only if Base is not in
+  // the app's wagmi chains, in which case x402 on Base is unavailable anyway.
+  const publicClient = usePublicClient({ chainId: base.id });
 
   const { fetchWithPayment, isReady } = useMemo(() => {
-    if (!walletClient || !address) {
+    if (!walletClient || !address || !publicClient) {
       return { fetchWithPayment: null, isReady: false };
     }
 
     try {
-      const publicClient = createPublicClient({ chain: base, transport: http() });
       const signer = toClientEvmSigner(
         {
           address: address as `0x${string}`,
@@ -54,7 +57,7 @@ export function useX402Fetch() {
       console.error("Failed to initialize x402 client:", error);
       return { fetchWithPayment: null, isReady: false };
     }
-  }, [walletClient, address]);
+  }, [walletClient, address, publicClient]);
 
   const safeFetchWithPayment = useCallback(
     async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {

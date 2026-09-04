@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { clientIp, isJsonRequest, isSameOriginRequest, takeRateLimitToken } from "~~/utils/requestGuards";
 
 /**
  * Error-beacon proxy: forwards runtime error reports from this app to the
@@ -8,10 +9,17 @@ import { NextRequest, NextResponse } from "next/server";
  * Mirrors /api/track/open: the CDP proxy key is a SERVER-ONLY secret, so the
  * browser posts here and this route attaches the key. A beacon must never
  * break the app it watches — every failure path returns quietly.
+ *
+ * Abuse guards: JSON-only, same-origin-only, and a per-IP token bucket. All of
+ * them fail SILENTLY with the same 204 as an accepted beacon so a probing
+ * client cannot tell which gate dropped it. The bucket is in-memory and
+ * per-instance (see utils/requestGuards.ts) — a nuisance cap, not a boundary.
  */
 
-const MAX_MESSAGE_CHARS = 5000;
+const MAX_MESSAGE_CHARS = 1000;
 const MAX_ROUTE_CHARS = 300;
+const RATE_LIMIT_EVENTS = 20;
+const RATE_LIMIT_WINDOW_MS = 5 * 60_000;
 
 // Intentionally not wrapped in withErrorReporting: this IS the beacon.
 // platform-invariant: error-beacon-proxy
@@ -20,6 +28,14 @@ export async function POST(request: NextRequest) {
   const backendUrl = process.env.VINIAPP_BACKEND;
 
   if (!cdpKey || !backendUrl) {
+    return new NextResponse(null, { status: 204 });
+  }
+
+  if (
+    !isJsonRequest(request) ||
+    !isSameOriginRequest(request) ||
+    !takeRateLimitToken("track-error", clientIp(request), RATE_LIMIT_EVENTS, RATE_LIMIT_WINDOW_MS)
+  ) {
     return new NextResponse(null, { status: 204 });
   }
 
@@ -37,7 +53,7 @@ export async function POST(request: NextRequest) {
       message,
       source: body?.source === "server" ? "server" : "client",
     };
-    if (typeof body?.route === "string" && body.route.trim()) {
+    if (typeof body?.route === "string" && body.route.startsWith("/")) {
       payload.route = body.route.slice(0, MAX_ROUTE_CHARS);
     }
     if (typeof body?.sqlstate === "string" && /^[0-9A-Z]{5}$/.test(body.sqlstate)) {

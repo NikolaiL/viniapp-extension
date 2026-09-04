@@ -54,7 +54,7 @@ export const wagmiConnectors = () => {
     ],
 
     {
-      appName: "scaffold-eth-2",
+      appName: process.env.NEXT_PUBLIC_APP_NAME || "ViniApp",
       projectId: scaffoldConfig.walletConnectProjectId,
     },
   );

@@ -1,6 +1,6 @@
 export const extraContents = `## 🚀 Miniapp Functionality
 
-Miniapp extension adds functionality to easily create a Farcaster/Base MiniApp. It will take care of manifest file generation at .well-known/farcatser.json as well as generation of the metatags required for miniapp rendering in Farcaster/Base feed.
+Miniapp extension adds functionality to easily create a Farcaster/Base MiniApp. It will take care of manifest file generation at .well-known/farcaster.json as well as generation of the metatags required for miniapp rendering in Farcaster/Base feed.
 
 ### Requirements
 
