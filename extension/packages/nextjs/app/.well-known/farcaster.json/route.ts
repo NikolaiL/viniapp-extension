@@ -115,11 +115,10 @@ export async function GET() {
     name: appName,
     subtitle: manifestText(process.env.NEXT_PUBLIC_APP_SUBTITLE, 30),
     description: manifestText(process.env.NEXT_PUBLIC_APP_DESCRIPTION, 170),
-    // Defaults point at an asset the scaffold actually ships (public/favicon.png
-    // from the base template); /icon.png and /splash.png do not exist unless the
-    // app adds them. Real apps set NEXT_PUBLIC_APP_ICON / _SPLASH_IMAGE.
-    iconUrl: absoluteUrl(process.env.NEXT_PUBLIC_APP_ICON || "/favicon.png", baseUrl),
-    splashImageUrl: absoluteUrl(process.env.NEXT_PUBLIC_APP_SPLASH_IMAGE || "/favicon.png", baseUrl),
+    // Standards-compliant defaults shipped by the extension. Real apps replace
+    // these through the generated brand metadata/environment values.
+    iconUrl: absoluteUrl(process.env.NEXT_PUBLIC_APP_ICON || "/viniapp-icon.png", baseUrl),
+    splashImageUrl: absoluteUrl(process.env.NEXT_PUBLIC_APP_SPLASH_IMAGE || "/viniapp-splash.png", baseUrl),
     splashBackgroundColor: process.env.NEXT_PUBLIC_SPLASH_BACKGROUND_COLOR,
     homeUrl: baseUrl,
     screenshotUrls: screenshotUrls(process.env.NEXT_PUBLIC_APP_SCREENSHOTS, baseUrl),

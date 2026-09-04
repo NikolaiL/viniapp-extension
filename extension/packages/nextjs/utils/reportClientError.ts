@@ -13,7 +13,6 @@ const IGNORED_MESSAGES: ReadonlyArray<string | RegExp> = [
   /user rejected/i, // wallet: the user declined a signature / transaction
   /\b4001\b/, // EIP-1193 userRejectedRequest code
   /AbortError/, // fetch cancelled by navigation or AbortController
-  /Load failed/, // Safari's generic fetch() network failure
   /ResizeObserver loop/, // benign browser layout notice
 ];
 

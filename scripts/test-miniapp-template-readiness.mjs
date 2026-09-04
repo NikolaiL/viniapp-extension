@@ -183,11 +183,15 @@ for (const pattern of [
   "/user rejected/i",
   "/\\b4001\\b/",
   "/AbortError/",
-  "/Load failed/",
   "/ResizeObserver loop/",
 ]) {
   assert.ok(clientErrorReporter.includes(pattern), `client error denylist must include ${pattern}`);
 }
+mustNot(
+  clientErrorReporter,
+  /\/Load failed\//,
+  "client error reporter must preserve Safari's generic network failures for CORS/API/RPC diagnosis",
+);
 
 // --- Dependencies ------------------------------------------------------------
 
@@ -221,13 +225,37 @@ mustNot(wagmiConnectors, /scaffold-eth-2/, "wallet appName must not leak the sca
 must(metadataTemplate, /export const titleTemplate = "%s";/, "page titles must not be suffixed with the scaffold name");
 must(
   manifestRoute,
-  /NEXT_PUBLIC_APP_ICON \|\| "\/favicon\.png"/,
-  "manifest iconUrl must default to an asset the scaffold ships",
+  /NEXT_PUBLIC_APP_ICON \|\| "\/viniapp-icon\.png"/,
+  "manifest iconUrl must default to the compliant icon shipped by the extension",
 );
 must(
   manifestRoute,
-  /NEXT_PUBLIC_APP_SPLASH_IMAGE \|\| "\/favicon\.png"/,
-  "manifest splashImageUrl must default to an asset the scaffold ships",
+  /NEXT_PUBLIC_APP_SPLASH_IMAGE \|\| "\/viniapp-splash\.png"/,
+  "manifest splashImageUrl must default to the compliant splash shipped by the extension",
+);
+const pngInfo = relativePath => {
+  const data = readFileSync(join(repoRoot, relativePath));
+  assert.deepEqual(
+    [...data.subarray(0, 8)],
+    [137, 80, 78, 71, 13, 10, 26, 10],
+    `${relativePath} must be a PNG`,
+  );
+  assert.equal(data.subarray(12, 16).toString("ascii"), "IHDR", `${relativePath} must start with IHDR`);
+  return {
+    width: data.readUInt32BE(16),
+    height: data.readUInt32BE(20),
+    colorType: data[25],
+  };
+};
+assert.deepEqual(
+  pngInfo(`${nextjs}/public/viniapp-icon.png`),
+  { width: 1024, height: 1024, colorType: 2 },
+  "default Farcaster icon must be a 1024x1024 RGB PNG without alpha",
+);
+assert.deepEqual(
+  pngInfo(`${nextjs}/public/viniapp-splash.png`),
+  { width: 200, height: 200, colorType: 2 },
+  "default Farcaster splash must be a 200x200 RGB PNG without alpha",
 );
 must(
   manifestRoute,
