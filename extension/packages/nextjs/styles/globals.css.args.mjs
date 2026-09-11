@@ -20,7 +20,7 @@ export const postContent = `
    (scoped to pages that render a game surface, so ordinary apps keep scroll
    chaining), no page scroll while steering, no long-press text selection, no
    tap flash, and no 200 ms button transitions under the player's thumb. Game
-   routes also export their own `viewport` with maximumScale 1 / userScalable
+   routes also export their own viewport with maximumScale 1 / userScalable
    false; the app-wide viewport keeps pinch-zoom for accessibility. */
 html:has(.game-surface), body:has(.game-surface) { overscroll-behavior: none; }
 .game-surface, .game-surface * {
