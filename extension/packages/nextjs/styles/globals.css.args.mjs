@@ -12,6 +12,22 @@ export const postContent = `
 .pt-safe { padding-top: var(--safe-area-inset-top); }
 .pb-safe { padding-bottom: var(--safe-area-inset-bottom); }
 .px-safe { padding-left: var(--safe-area-inset-left); padding-right: var(--safe-area-inset-right); }
+/* Full-height sizing between the host insets (dvh tracks mobile URL-bar
+   changes; 100vh overflows and makes touch games scroll the page). */
+.h-screen-safe { height: 100dvh; height: calc(100dvh - var(--safe-area-inset-top) - var(--safe-area-inset-bottom)); }
+
+/* Touch-game surface. Put this on the canvas/board wrapper: no pull-to-refresh,
+   no page scroll while steering, no long-press text selection, no tap flash,
+   and no 200 ms button transitions under the player's thumb. */
+html, body { overscroll-behavior: none; }
+.game-surface, .game-surface * {
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.game-surface .btn, .game-surface button { transition: none; }
 
 /* ViniApp Tailwind DaisyUI compatibility layer.
    Keep this in sync with the backend generated-app cleanup fallback. */
