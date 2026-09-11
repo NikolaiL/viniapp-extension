@@ -6,13 +6,12 @@ export const metadataOverrides = {
 // Mini apps render edge-to-edge inside Farcaster/Base/World hosts. Without
 // viewport-fit=cover the safe-area insets resolve to 0 and fixed headers or
 // bottom navs sit under notches. The platform's release invariant requires it.
-// maximumScale/userScalable stop double-tap and pinch zoom from firing during
-// fast tapping in games and other touch-heavy screens inside mini-app hosts.
+// Pinch-zoom stays enabled app-wide for accessibility; a game route exports its
+// own `viewport` with maximumScale 1 / userScalable false (see the
+// miniapp-game-patterns skill) so double-tap zoom cannot fire during play.
 export const preContent = `export const viewport: import("next").Viewport = {
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
   viewportFit: "cover",
 };
 `;

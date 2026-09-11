@@ -16,10 +16,13 @@ export const postContent = `
    changes; 100vh overflows and makes touch games scroll the page). */
 .h-screen-safe { height: 100dvh; height: calc(100dvh - var(--safe-area-inset-top) - var(--safe-area-inset-bottom)); }
 
-/* Touch-game surface. Put this on the canvas/board wrapper: no pull-to-refresh,
-   no page scroll while steering, no long-press text selection, no tap flash,
-   and no 200 ms button transitions under the player's thumb. */
-html, body { overscroll-behavior: none; }
+/* Touch-game surface. Put this on the canvas/board wrapper: no pull-to-refresh
+   (scoped to pages that render a game surface, so ordinary apps keep scroll
+   chaining), no page scroll while steering, no long-press text selection, no
+   tap flash, and no 200 ms button transitions under the player's thumb. Game
+   routes also export their own `viewport` with maximumScale 1 / userScalable
+   false; the app-wide viewport keeps pinch-zoom for accessibility. */
+html:has(.game-surface), body:has(.game-surface) { overscroll-behavior: none; }
 .game-surface, .game-surface * {
   touch-action: none;
   user-select: none;
