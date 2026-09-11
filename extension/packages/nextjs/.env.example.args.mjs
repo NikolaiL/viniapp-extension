@@ -54,6 +54,12 @@ NEXT_PUBLIC_APP_SCREENSHOTS=
 NEXT_PUBLIC_AUTO_ADD_MINIAPP=
 NEXT_PUBLIC_WEBHOOK_URL=
 
+# Farcaster identity (server-only). Quick Auth is the default identity inside
+# Farcaster; the fid's primary wallet is resolved from the ViniApp Snapchain hub
+# (defaults to the platform hub when empty) with Neynar as an optional fallback.
+FARCASTER_HUB_URL=
+NEYNAR_API_KEY=
+
 # ViniApp Backend (required for notifications and analytics)
 VINIAPP_BACKEND=
 # CDP_PROXY_KEY - SERVER-ONLY secret. Set in Vercel env vars (do not commit real

@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { sdk } from "@farcaster/miniapp-sdk";
+import { getQuickAuthToken } from "~~/utils/quickAuth";
 import { base } from "viem/chains";
 import { useAccount, useConnect, useReconnect, useSwitchChain } from "wagmi";
 import {
@@ -461,9 +462,10 @@ export const MiniappProvider = ({ children }: MiniappProviderProps) => {
           body: JSON.stringify(extra ? { ...trackingPayload, ...extra } : trackingPayload),
         }).catch(() => {});
       if (isMiniApp) {
-        sdk.quickAuth
-          .getToken()
-          .then(({ token }) => send({ fc_token: token }))
+        // Shared wrapper (utils/quickAuth.ts): the only place that calls
+        // sdk.quickAuth.getToken(); app code reuses it for Bearer headers.
+        getQuickAuthToken()
+          .then(token => (token ? send({ fc_token: token }) : send()))
           .catch(() => send());
       } else {
         send();
