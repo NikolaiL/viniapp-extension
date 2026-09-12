@@ -2,7 +2,6 @@
 
 import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { sdk } from "@farcaster/miniapp-sdk";
-import { getQuickAuthToken } from "~~/utils/quickAuth";
 import { base } from "viem/chains";
 import { useAccount, useConnect, useReconnect, useSwitchChain } from "wagmi";
 import {
@@ -21,6 +20,7 @@ import {
   parseFarcasterComposeUrl,
   toCastEmbeds,
 } from "~~/utils/miniappLinks";
+import { getQuickAuthToken } from "~~/utils/quickAuth";
 import { installClientErrorReporting } from "~~/utils/reportClientError";
 
 export type {
@@ -65,38 +65,135 @@ interface MiniappContextType {
   openProfile: (params: { fid?: number; username?: string }) => Promise<void>;
   viewToken: (tokenAddress: string, chain?: string) => Promise<void>;
   swapToken: (params: { buyToken?: string; sellToken?: string; chain?: string }) => Promise<void>;
+  /**
+   * Ask the host to add the app (and enable notifications). Call it as the
+   * FIRST statement of the handler for the user's first success (or an
+   * explicit "Add" CTA with `{ force: true }`); it is a no-op outside
+   * Farcaster, when already added, after a rejection this session, or when
+   * NEXT_PUBLIC_AUTO_ADD_MINIAPP=false (unless forced).
+   */
+  promptAddMiniApp: (options?: { force?: boolean }) => Promise<boolean>;
 }
 
 const MiniappContext = createContext<MiniappContextType | undefined>(undefined);
 
 /**
- * Fire-and-forget `sdk.actions.ready()`.
+ * `sdk.actions.ready()` timing.
  *
- * Called on mount BEFORE host detection: the Farcaster splash only dismisses
- * once the host receives ready(), and waiting on `sdk.isInMiniApp()` first
- * (a full bridge round-trip, or a 1s timeout) delays first paint for nothing.
- * The SDK no-ops outside a Farcaster host, and one short retry (a yield, not
- * a backoff) covers the bridge not being attached yet. Never throws, never
- * rejects — nothing may await it on Base App / plain web, where SDK promises
- * can hang forever.
+ * The host shows its splash until ready() arrives, so the call decides what
+ * the user sees first. Too early (on mount) and the splash gives way to a
+ * shell that is still loading fonts, art, or the first data; too late and
+ * the host looks stuck. The gate below releases ready() when every hold is
+ * gone or after READY_CAP_MS, whichever comes first, so a slow or hung asset
+ * can never keep the splash up. Holds are cheap and app-owned:
+ *
+ *   import { useReadyHold, configureReady } from "~~/components/MiniappProvider";
+ *   useReadyHold(!atlasLoaded, "sprite-atlas");     // game: hold until art is in
+ *   useReadyHold(accountQuery.isPending, "account"); // first screen's data
+ *   configureReady({ disableNativeGestures: true }); // canvas games with drag
+ *
+ * Fire-and-forget: the SDK no-ops outside a Farcaster host; one short retry
+ * covers a bridge that is not attached yet. Never throws, never rejects —
+ * nothing may await it on Base App / plain web, where SDK promises can hang.
  */
-const callReady = (): Promise<void> => {
-  try {
-    return sdk.actions
-      .ready()
-      .catch(async () => {
-        await new Promise(resolve => setTimeout(resolve, 500));
-        try {
-          await sdk.actions.ready();
-        } catch (error) {
-          console.error("MiniApp SDK ready() error:", error);
-        }
-      })
-      .catch(() => {});
-  } catch {
-    return Promise.resolve();
-  }
+const READY_CAP_MS = 3000;
+
+export type ReadyOptions = { disableNativeGestures?: boolean };
+
+const readyGate: {
+  holds: Set<string>;
+  released: boolean;
+  options: ReadyOptions;
+  listeners: Array<() => void>;
+} = { holds: new Set(), released: false, options: {}, listeners: [] };
+
+const releaseGate = () => {
+  if (readyGate.released) return;
+  readyGate.released = true;
+  readyGate.listeners.splice(0).forEach(listener => listener());
 };
+
+/** Keep the host splash up until `releaseReady(reason)` (or the 3 s cap). */
+export const holdReady = (reason: string) => {
+  if (!readyGate.released) readyGate.holds.add(reason);
+};
+
+export const releaseReady = (reason: string) => {
+  readyGate.holds.delete(reason);
+  if (readyGate.holds.size === 0) releaseGate();
+};
+
+/** Options passed to ready(); call before the gate releases (first render). */
+export const configureReady = (options: ReadyOptions) => {
+  readyGate.options = { ...readyGate.options, ...options };
+};
+
+/** Hold ready() while `active` is true; releases on cleanup. */
+export const useReadyHold = (active: boolean, reason: string) => {
+  useEffect(() => {
+    if (!active) return;
+    holdReady(reason);
+    return () => releaseReady(reason);
+  }, [active, reason]);
+};
+
+const waitForReadyGate = (): Promise<void> =>
+  new Promise(resolve => {
+    if (readyGate.released || readyGate.holds.size === 0) {
+      releaseGate();
+      resolve();
+      return;
+    }
+    const timer = setTimeout(() => {
+      releaseGate();
+      resolve();
+    }, READY_CAP_MS);
+    readyGate.listeners.push(() => {
+      clearTimeout(timer);
+      resolve();
+    });
+  });
+
+const callReady = (): Promise<void> => {
+  // Fonts are the one hold every app shares: a first frame in a fallback
+  // face reflows the moment the web font lands.
+  try {
+    if (typeof document !== "undefined" && document.fonts?.status === "loading") {
+      holdReady("fonts");
+      document.fonts.ready.then(() => releaseReady("fonts")).catch(() => releaseReady("fonts"));
+    }
+  } catch {
+    releaseReady("fonts");
+  }
+  return waitForReadyGate()
+    .then(() => {
+      try {
+        return sdk.actions
+          .ready(readyGate.options)
+          .catch(async () => {
+            await new Promise(resolve => setTimeout(resolve, 500));
+            try {
+              await sdk.actions.ready(readyGate.options);
+            } catch (error) {
+              console.error("MiniApp SDK ready() error:", error);
+            }
+          })
+          .catch(() => {});
+      } catch {
+        return Promise.resolve();
+      }
+    })
+    .catch(() => {});
+};
+
+/**
+ * Add-mini-app prompt timing. The host allows the prompt only inside a user
+ * gesture and remembers a rejection for the session, so asking on launch
+ * (before the app has shown anything) burns the one chance on a "Not now".
+ * Ask after the first success instead — the first score saved, entry written,
+ * prediction placed — from that success handler. Never on launch.
+ */
+const ADD_PROMPT_ENGAGEMENT_MS = 45_000;
 
 /**
  * Hook to access Farcaster miniapp context
@@ -349,16 +446,6 @@ export const MiniappProvider = ({ children }: MiniappProviderProps) => {
         setPlatform(detectViniPlatform(true));
         setIsReady(true);
         await readyPromise;
-
-        const added = fullContext.client?.added ?? false;
-        const autoAdd = process.env.NEXT_PUBLIC_AUTO_ADD_MINIAPP !== "false";
-        if (!added && autoAdd) {
-          try {
-            await sdk.actions.addMiniApp();
-          } catch (e) {
-            console.log("Error adding mini app:", e);
-          }
-        }
       } catch (error) {
         console.error("MiniApp SDK initialization error:", error);
         setIsReady(true);
@@ -487,6 +574,54 @@ export const MiniappProvider = ({ children }: MiniappProviderProps) => {
     return () => clearTimeout(timer);
   }, [isReady, platform, address, isMiniApp, context.user?.fid, context.user?.username, context.client?.clientFid]);
 
+  // Add-mini-app prompt: once per session, never on launch (see the note above
+  // ADD_PROMPT_ENGAGEMENT_MS). `NEXT_PUBLIC_AUTO_ADD_MINIAPP=false` turns the
+  // automatic paths off; an explicit CTA still works with { force: true }.
+  const addPromptDone = useRef(false);
+  const autoAddEnabled = process.env.NEXT_PUBLIC_AUTO_ADD_MINIAPP !== "false";
+  const promptAddMiniApp = async (options?: { force?: boolean }): Promise<boolean> => {
+    if (!isMiniApp || addPromptDone.current || context.client?.added) return false;
+    if (!autoAddEnabled && !options?.force) return false;
+    addPromptDone.current = true;
+    try {
+      // First awaited statement: the user-activation window is transient.
+      await sdk.actions.addMiniApp();
+      return true;
+    } catch (error) {
+      const name = (error as { name?: string } | null)?.name ?? "";
+      if (name === "AddMiniApp.RejectedByUser") return false; // "Not now": do not ask again this session
+      if (name === "AddMiniApp.InvalidDomainManifest")
+        console.warn("addMiniApp: manifest domain mismatch (tunnel or preview domain?)");
+      else console.warn("addMiniApp failed:", error);
+      addPromptDone.current = false;
+      return false;
+    }
+  };
+
+  // Engagement fallback for apps without a clear first-success moment: after
+  // 45 s of session time, the next tap prompts once. Skipped for notification
+  // and cast-embed opens (those users came for one thing).
+  useEffect(() => {
+    if (!isReady || !isMiniApp || !autoAddEnabled || context.client?.added) return;
+    const launch = context.location?.type;
+    if (launch === "notification" || launch === "cast_embed") return;
+    let armed = false;
+    const timer = setTimeout(() => {
+      armed = true;
+    }, ADD_PROMPT_ENGAGEMENT_MS);
+    const onGesture = () => {
+      if (!armed || addPromptDone.current) return;
+      void promptAddMiniApp();
+      document.removeEventListener("pointerup", onGesture, true);
+    };
+    document.addEventListener("pointerup", onGesture, true);
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener("pointerup", onGesture, true);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isReady, isMiniApp, autoAddEnabled, context.client?.added, context.location?.type]);
+
   const value = {
     context,
     isReady,
@@ -500,6 +635,7 @@ export const MiniappProvider = ({ children }: MiniappProviderProps) => {
     openProfile,
     viewToken,
     swapToken,
+    promptAddMiniApp,
   };
 
   return <MiniappContext.Provider value={value}>{children}</MiniappContext.Provider>;

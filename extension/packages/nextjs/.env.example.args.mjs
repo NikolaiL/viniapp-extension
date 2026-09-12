@@ -51,6 +51,10 @@ NEXT_PUBLIC_APP_TAGS=
 
 # comma separated list of screenshot images with full domain
 NEXT_PUBLIC_APP_SCREENSHOTS=
+
+# Add-mini-app prompt: asked once, after the user's first success (or after 45 s
+# of engaged use), never on launch. Set to false so only an explicit "Add" CTA
+# (promptAddMiniApp({ force: true })) asks. The app runs fully without it.
 NEXT_PUBLIC_AUTO_ADD_MINIAPP=
 NEXT_PUBLIC_WEBHOOK_URL=
 
