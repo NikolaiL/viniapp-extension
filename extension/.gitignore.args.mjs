@@ -10,4 +10,11 @@ export const postContent = `
 *.swo
 *.swn
 .*.sw?
-*~`;
+*~
+
+# upstream Scaffold-ETH agent/editor config that is noise in a generated app
+.mcp.json
+opencode.json
+.opencode/
+.cursor/agents/
+.cursor/mcp.json`;
