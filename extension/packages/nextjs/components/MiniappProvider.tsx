@@ -73,6 +73,14 @@ interface MiniappContextType {
    * NEXT_PUBLIC_AUTO_ADD_MINIAPP=false (unless forced).
    */
   promptAddMiniApp: (options?: { force?: boolean }) => Promise<boolean>;
+  /**
+   * Hold the add prompt while a run, round, or timed interaction is active:
+   * `holdAddPrompt(true)` when it starts, `holdAddPrompt(false)` when it
+   * ends. While held, the engagement fallback stays silent and
+   * `promptAddMiniApp()` is a no-op unless forced, so the host sheet can
+   * never open over live gameplay.
+   */
+  holdAddPrompt: (hold: boolean) => void;
 }
 
 const MiniappContext = createContext<MiniappContextType | undefined>(undefined);
@@ -578,10 +586,14 @@ export const MiniappProvider = ({ children }: MiniappProviderProps) => {
   // ADD_PROMPT_ENGAGEMENT_MS). `NEXT_PUBLIC_AUTO_ADD_MINIAPP=false` turns the
   // automatic paths off; an explicit CTA still works with { force: true }.
   const addPromptDone = useRef(false);
+  const addPromptHeld = useRef(false);
+  const holdAddPrompt = (hold: boolean) => {
+    addPromptHeld.current = hold;
+  };
   const autoAddEnabled = process.env.NEXT_PUBLIC_AUTO_ADD_MINIAPP !== "false";
   const promptAddMiniApp = async (options?: { force?: boolean }): Promise<boolean> => {
     if (!isMiniApp || addPromptDone.current || context.client?.added) return false;
-    if (!autoAddEnabled && !options?.force) return false;
+    if ((!autoAddEnabled || addPromptHeld.current) && !options?.force) return false;
     addPromptDone.current = true;
     try {
       // First awaited statement: the user-activation window is transient.
@@ -600,7 +612,9 @@ export const MiniappProvider = ({ children }: MiniappProviderProps) => {
 
   // Engagement fallback for apps without a clear first-success moment: after
   // 45 s of session time, the next tap prompts once. Skipped for notification
-  // and cast-embed opens (those users came for one thing).
+  // and cast-embed opens (those users came for one thing), while a run is held
+  // (`holdAddPrompt(true)`), and for taps on a canvas or `[data-gameplay]`
+  // surface: a gameplay tap must never open the host sheet (app 1466).
   useEffect(() => {
     if (!isReady || !isMiniApp || !autoAddEnabled || context.client?.added) return;
     const launch = context.location?.type;
@@ -609,8 +623,10 @@ export const MiniappProvider = ({ children }: MiniappProviderProps) => {
     const timer = setTimeout(() => {
       armed = true;
     }, ADD_PROMPT_ENGAGEMENT_MS);
-    const onGesture = () => {
-      if (!armed || addPromptDone.current) return;
+    const onGesture = (event: Event) => {
+      if (!armed || addPromptDone.current || addPromptHeld.current) return;
+      const target = event.target instanceof Element ? event.target : null;
+      if (target?.closest("canvas, [data-gameplay]")) return;
       void promptAddMiniApp();
       document.removeEventListener("pointerup", onGesture, true);
     };
@@ -636,6 +652,7 @@ export const MiniappProvider = ({ children }: MiniappProviderProps) => {
     viewToken,
     swapToken,
     promptAddMiniApp,
+    holdAddPrompt,
   };
 
   return <MiniappContext.Provider value={value}>{children}</MiniappContext.Provider>;
