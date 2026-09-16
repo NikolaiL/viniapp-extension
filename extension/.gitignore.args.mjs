@@ -12,6 +12,10 @@ export const postContent = `
 .*.sw?
 *~
 
+# chat attachments the platform materializes into the workdir for the builder
+# (reference images/PDFs, Neynar Studio source zips); never part of the app
+attachments/
+
 # upstream Scaffold-ETH agent/editor config that is noise in a generated app
 .mcp.json
 opencode.json
